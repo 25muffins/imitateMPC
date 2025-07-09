@@ -1,6 +1,5 @@
 package org.firstinspires.ftc.teamcode;
 
-import static org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequenceRunner.COLOR_ACTIVE_TRAJECTORY;
 import static org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequenceRunner.COLOR_INACTIVE_TRAJECTORY;
 
 import android.content.res.AssetFileDescriptor;
@@ -18,9 +17,9 @@ import com.acmerobotics.roadrunner.path.PathSegment;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.util.ElapsedTime;
 //import org.tensorflow.SavedModelBundle;
@@ -29,21 +28,15 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.util.DashboardUtil;
 import org.tensorflow.lite.Interpreter;
-import org.tensorflow.lite.TensorFlowLite;
-
 
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
-import org.firstinspires.ftc.robotcore.external.navigation.Pose2D;
-import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
 import org.firstinspires.ftc.teamcode.drive.TwoWheelTrackingLocalizer;
 
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
-import java.nio.file.Paths;
 import java.util.Arrays;
 //import org.tensorflow.ndarray.IntNdArray;
 //import org.tensorflow.ndarray.NdArrays;
@@ -59,6 +52,15 @@ public class testMPCNeuralNetwork extends LinearOpMode {
 
     private ElapsedTime timer = new ElapsedTime();
     private FtcDashboard dashboard;
+//for testing directions
+//    public static double flSpeed = 0;
+//    public static double blSpeed = 0;
+//    public static double brSpeed = 0;
+//    public static double frSpeed = 0;
+
+    public static double speed = 0.5;
+    public static double[] goal1 = {10, -10};
+    public static double[] goal2 = {20,-20};
 
 
     @Override
@@ -74,6 +76,12 @@ public class testMPCNeuralNetwork extends LinearOpMode {
         br.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         fr.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
+        fl.setDirection(DcMotorSimple.Direction.REVERSE);
+        bl.setDirection(DcMotorSimple.Direction.REVERSE);
+        br.setDirection(DcMotorSimple.Direction.REVERSE);
+        fr.setDirection(DcMotorSimple.Direction.FORWARD);
+
+
 //        Session session = null;
 //        String modelPath = "\\OneDrive\\Documents\\MATLAB\\nlmpcImitate\\savedModel";
 //        try (SavedModelBundle model = SavedModelBundle.load(modelPath, "serve")) {
@@ -88,7 +96,7 @@ public class testMPCNeuralNetwork extends LinearOpMode {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        float[] inputs = {1,2,3,4,5,6,7};
+        float[] inputs = {0,0,0, (float) goal1[0], (float) goal1[1], (float) goal2[0], (float) goal2[1]};
         float[][] outputs = {{1,2,3,4}};
 
         Pose2d pose;
@@ -105,10 +113,7 @@ public class testMPCNeuralNetwork extends LinearOpMode {
 
         dashboard = FtcDashboard.getInstance();
         Telemetry telemetry = new MultipleTelemetry(this.telemetry, dashboard.getTelemetry());
-        TelemetryPacket initialPacket = new TelemetryPacket();
-        Canvas fieldOverlay = initialPacket.fieldOverlay();
-        dashboard.sendTelemetryPacket(initialPacket);
-        DashboardUtil.drawRobot(fieldOverlay, new Pose2d(0,0));
+        drawField(new Pose2d(0,0,0), inputs);
 
 
         waitForStart();
@@ -126,16 +131,19 @@ public class testMPCNeuralNetwork extends LinearOpMode {
 //                    .get(0); // Get the first (and likely only) output tensor
 //            outputTensor
 
-            double[] goal1 = {10, 10};
-            double[] goal2 = {20,20};
+
             pose = localizer.getPoseEstimate();
             inputs[0] = (float) pose.getX();
             inputs[1] = (float) pose.getY();
-            inputs[2] = (float) pose.getHeading();
+
+            float HeadingChange = (float) (pose.getHeading() - Math.PI/4); //idk why i think it has something to do with the switched x and y
+            if(HeadingChange > Math.PI) { inputs[2] = (float) (HeadingChange - 2*Math.PI);}
+            else{ inputs[2] = HeadingChange;}
+
             inputs[3] = (float) goal1[0];
-            inputs[4] = (float) goal1[1];
+            inputs[4] = (float) -goal1[1];
             inputs[5] = (float) goal2[0];
-            inputs[6] = (float) goal2[1];
+            inputs[6] = (float) -goal2[1];
 
 
             timer.reset();
@@ -145,7 +153,15 @@ public class testMPCNeuralNetwork extends LinearOpMode {
 
             // [fr, fl, br, bl]
 //            fr.setVelocity();
-
+            fr.setPower(speed*outputs[0][0]);
+            fl.setPower(speed*outputs[0][1]);
+            br.setPower(speed*outputs[0][2]);
+            bl.setPower(speed*outputs[0][3]);
+            //for testing directions
+//            fl.setPower(flSpeed);
+//            bl.setPower(blSpeed);
+//            br.setPower(brSpeed);
+//            fr.setPower(frSpeed);
 
             telemetry.addData("totalTime", totalTime);
             telemetry.addData("outputs", Arrays.toString(outputs[0]));
@@ -154,18 +170,11 @@ public class testMPCNeuralNetwork extends LinearOpMode {
             telemetry.addData("goal2", Arrays.toString(goal2));
             telemetry.addData("parallel", fl.getCurrentPosition());
             telemetry.addData("perp", bl.getCurrentPosition());
+            telemetry.addData("imu", getHeading());
 
-            TelemetryPacket packet = new TelemetryPacket();
-            fieldOverlay = packet.fieldOverlay();
-            DashboardUtil.drawRobot(fieldOverlay, pose);
-            fieldOverlay.setStroke(COLOR_INACTIVE_TRAJECTORY);
-            DashboardUtil.drawSampledPath(fieldOverlay, new Path(new PathSegment(
-                    new LineSegment(new Vector2d(inputs[0], inputs[1]),
-                            new Vector2d(inputs[3], inputs[4])))));
-            DashboardUtil.drawSampledPath(fieldOverlay, new Path(new PathSegment(
-                    new LineSegment(new Vector2d(inputs[3], inputs[4]),
-                            new Vector2d(inputs[5], inputs[6])))));
-            dashboard.sendTelemetryPacket(packet);
+
+            drawField(pose, inputs);
+
             telemetry.update();
             localizer.update();
         }
@@ -174,7 +183,7 @@ public class testMPCNeuralNetwork extends LinearOpMode {
         return imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS);
     }
     private MappedByteBuffer loadModelFile() throws IOException {
-        String modelPath = "modelSmaller.tflite";
+        String modelPath = "model.tflite";
         AssetFileDescriptor fileDescriptor =
                 hardwareMap.appContext.getAssets().openFd(modelPath);
         FileInputStream inputStream =
@@ -184,4 +193,18 @@ public class testMPCNeuralNetwork extends LinearOpMode {
         long declaredLength = fileDescriptor.getDeclaredLength();
         return fileChannel.map(FileChannel.MapMode.READ_ONLY, startOffset, declaredLength);
     }
+    public void drawField(Pose2d pose, float[] inputs){
+        TelemetryPacket packet = new TelemetryPacket();
+        Canvas fieldOverlay = packet.fieldOverlay();
+        DashboardUtil.drawRobot(fieldOverlay, pose);
+        fieldOverlay.setStroke(COLOR_INACTIVE_TRAJECTORY);
+        DashboardUtil.drawSampledPath(fieldOverlay, new Path(new PathSegment(
+                new LineSegment(new Vector2d(inputs[0], inputs[1]),
+                        new Vector2d(goal1[0], goal1[1])))));
+        DashboardUtil.drawSampledPath(fieldOverlay, new Path(new PathSegment(
+                new LineSegment(new Vector2d(inputs[3], inputs[4]),
+                        new Vector2d(goal2[0], goal2[1])))));
+        dashboard.sendTelemetryPacket(packet);
+    }
+
 }
