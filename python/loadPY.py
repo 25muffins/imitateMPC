@@ -1,9 +1,9 @@
-import firstModel
+import firstModelSmaller
 import tensorflow as tf
-model = firstModel.load_model()
-model.export("savedModel")
-converter = tf.lite.TFLiteConverter.from_saved_model("savedModel")
+model = firstModelSmaller.load_model()
+model.export("savedModelSmaller")
+converter = tf.lite.TFLiteConverter.from_saved_model("savedModelSmaller")
 tflite_model = converter.convert()
 
-with open('model.tflite', 'wb') as f:
+with open('modelSmaller.tflite', 'wb') as f:
   f.write(tflite_model)

@@ -38,7 +38,7 @@ import java.util.function.DoubleSupplier;
 @Config
 public class TwoWheelTrackingLocalizer extends TwoTrackingWheelLocalizer {
     public static double TICKS_PER_REV = 8192;
-    public static double TICKS_PER_GOBILDA = 2000;
+    public static double TICKS_PER_GOBILDA = 8192; //2000
 
     public static double WHEEL_RADIUS = 0.62992; // in
     public static double WHEEL_GOBILDA = 0.944882;

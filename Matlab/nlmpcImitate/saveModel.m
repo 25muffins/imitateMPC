@@ -1,2 +1,2 @@
 load("network.mat")
-exportNetworkToTensorFlow(imitateMPCNetwork, 'firstModel')
+exportNetworkToTensorFlow(imitateMPCNetwork, 'firstModelSmaller')
