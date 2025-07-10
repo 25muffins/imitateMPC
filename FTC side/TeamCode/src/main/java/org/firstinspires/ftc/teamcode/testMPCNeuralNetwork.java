@@ -133,17 +133,22 @@ public class testMPCNeuralNetwork extends LinearOpMode {
 
 
             pose = localizer.getPoseEstimate();
-            inputs[0] = (float) pose.getX();
-            inputs[1] = (float) pose.getY();
 
-            float HeadingChange = (float) (pose.getHeading() - Math.PI/4); //idk why i think it has something to do with the switched x and y
-            if(HeadingChange > Math.PI) { inputs[2] = (float) (HeadingChange - 2*Math.PI);}
-            else{ inputs[2] = HeadingChange;}
+            float[] inputConvertedPose = convertCoordinates(pose.getX(), pose.getY());
+            float[] inputConvertedGoal1 = convertCoordinates(goal1[0], goal1[1]);
+            float[] inputConvertedGoal2 = convertCoordinates(goal2[0], goal2[1]);
+            inputs[0] = inputConvertedPose[0];
+            inputs[1] = inputConvertedPose[1];
 
-            inputs[3] = (float) goal1[0];
-            inputs[4] = (float) -goal1[1];
-            inputs[5] = (float) goal2[0];
-            inputs[6] = (float) -goal2[1];
+//            float HeadingChange = (float) (pose.getHeading() - Math.PI/4); //idk why i think it has something to do with the switched x and y
+//            if(HeadingChange > Math.PI) { inputs[2] = (float) (HeadingChange - 2*Math.PI);}
+//            else{ }
+            inputs[2] = (float) pose.getHeading();
+
+            inputs[3] = inputConvertedGoal1[0];
+            inputs[4] = inputConvertedGoal1[1];
+            inputs[5] = inputConvertedGoal2[0];
+            inputs[6] = inputConvertedGoal2[1];
 
 
             timer.reset();
@@ -181,6 +186,10 @@ public class testMPCNeuralNetwork extends LinearOpMode {
     }
     double getHeading() {
         return imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS);
+    }
+    float[] convertCoordinates(double x, double y){
+        return new float[] {(float) y, (float) x};
+
     }
     private MappedByteBuffer loadModelFile() throws IOException {
         String modelPath = "model.tflite";
