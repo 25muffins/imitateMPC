@@ -1,4 +1,4 @@
-function collectDataTest()
+function collectDataFinal()
 % Creates the MAT file 'InputDataFileImLKA.mat' based on the value of
 % 'isRandom'
 
@@ -13,7 +13,7 @@ function collectDataTest()
 
 
 % use a different seed such as rng('shuffle') to create differing data
-rng(2)
+rng(1)
 
 % Generate MPC object.
 Ts = 1;         % Sampling time
@@ -41,7 +41,7 @@ end
 
 % Weights
 nlobj.Weights.OutputVariables = [100 100 10];     % [x y theta]
-nlobj.Weights.ManipulatedVariablesRate = [.1 .1 .1 .1];
+nlobj.Weights.ManipulatedVariablesRate = [1 1 1 1];
 nlobj.OV(3).Max = pi/4;
 nlobj.OV(3).Min = -pi/4;
 
@@ -52,43 +52,26 @@ nloptions = nlmpcmoveopt;
 %nloptions.Parameters = {Ts, r, l, w};
 
 
-%for k = 1:size(fullPath,1)
-   % yref = fullPath(k:size(fullPath,1),:);
-    % Compute optimal control
-   % [u, ~] = nlmpcmove(nlobj, x0, mv0, yref, [], nloptions);
-    % Update state using model
-   % x0 = mecanumStateFcn(x0, u, Ts, rb, nx);
-   % trajectory = [trajectory; x0'];
-   % u
-    
-%end
 % Generate random data
-Data = zeros(1e5,17);
-trajectories = zeros(1e5, 3);
-supposedTrajectory = zeros(1e3, 1e2);
-for ct = 1:1e1
-   [x0, u0, goal1, goal2, ref] = randomDataNLMPC;
-   a = size(ref(:,1));
-   
-   supposedTrajectory(2*ct-1, 1:a(1)) = ref(:,1)';
-   supposedTrajectory(2*ct, 1:a(1))  = ref(:,2)';
-   for i = 1:10
+Data = zeros(1e4,17);
+
+for ct = 1:1e4
+    [x0, u0, goal1, goal2, ref] = randomDataNLMPC;
+    u0 = [0; 0; 0; 0];
+    a = size(ref(:,1));
+    for g = 1:a
         [u, ~] = nlmpcmove(nlobj, x0, u0, ref(i+1:a(1), :), [], nloptions);
         u
-        % x0 (3), u0(4), goal1(3), goal2(3), u(4)
-        if i == 1
-            Data(ct,:) = [x0(:)', u0(:)', goal1(:)', goal2(:)', u(:)'];
-        end
         x0 = mecanumStateFcn(x0, u, Ts, rb, nx);
-        trajectory = x0;
-        trajectories(10*ct+i-10,:) = trajectory(:)';
-   end
-    
+        % x0 (3), u0(4), goal1(3), goal2(3), u(4)
+        Data(ct,:) = [x0(:)', u0(:)', goal1(:)', goal2(:)', u(:)'];
+    end  
+    ct
 end
 
 
 % Create MAT file
-save('fullNLMPCtest','Data', 'trajectories', 'supposedTrajectory')
+save('nlmpcFullData','Data')
 
 
 function xnext = mecanumStateFcn(x, u, Ts, rb, nx)
