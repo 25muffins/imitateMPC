@@ -26,17 +26,15 @@ load('fullNLMPCtest2.mat')
 
 %plot(Data(:,1), Data(:,2));
 
-d = Data(~all(Data == 0, 2), :); %thanks matlab help center
 
-plotFull(2,d, trajLength);
+plotFull(2,Data, trajLength);
 
 
 function plotFull(ct, Data, trajLength)
     start = trajLength(ct);
     last = trajLength(ct+1)-1;
-    if last == -1 %last path fix
-        temp = size((Data(:,8)));
-        last = temp(1);
+    if last == -1
+        last = size(nonzeros(Data)
     end
     start
     last

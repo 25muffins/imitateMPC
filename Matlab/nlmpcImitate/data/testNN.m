@@ -1,11 +1,11 @@
 load('network')
-load("fullNLMPCtest.mat")
+load("onestepNNtest.mat")
 Ts = 1;       
 rb = 7.5;
 nx = 3;    
 
 
-%Ypredict = predict(imitateMPCNetwork, testDataInput);
+Ypredict = predict(imitateMPCNetwork, testDataInput);
 rmse(testDataOutput, Ypredict)
 mean(abs(Ypredict - testDataOutput))
 
@@ -20,10 +20,11 @@ testData = zeros(1e3,10); %start, goal1, goal2, nextTest, nextReal
    
 %end
 
+number = 1;
 list = zeros(10,3);
-x0 = [Data(1,1), Data(1,2), Data(1,3)];
-for g = 1:4
-    inputData = [Data(1,1), Data(1,2), Data(1,3), Data(1,8), Data(1,9), Data(1,11), Data(1,12)];
+x0 = [Data(number,1), Data(number,2), Data(number,3)];
+for g = 1:10
+    inputData = [Data(number,1), Data(number,2), Data(number,3), Data(number,8), Data(number,9), Data(number,11), Data(number,12)];
     Ypredict = predict(imitateMPCNetwork, inputData);
     x0 = mecanumStateFcn(x0', Ypredict', Ts, rb, nx)';
     x0
@@ -31,7 +32,7 @@ for g = 1:4
 end
 
 %plotTestData(1, testData)
-plotMPC(1,trajectories, supposedTrajectory)
+plotMPC(number,trajectories, supposedTrajectory)
 
 plot(list(:,1), list(:,2), 'go')
 

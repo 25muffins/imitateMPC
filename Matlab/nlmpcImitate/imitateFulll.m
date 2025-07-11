@@ -1,6 +1,6 @@
 %imitateMPC Matlab example code
 
-d1 = load('nlmpcDataFinal.mat');
+d1 = load('fullNLMPC.mat');
 
 %[sys,Vx] = createModelForMPCImLKA;
 %[mpcobj,initialState] = createMPCobjImLKA(sys);
@@ -92,4 +92,4 @@ imitateMPCNetwork = trainnet( ...
     "mse", ...
     options);
 
-save("network", "imitateMPCNetwork", "testDataInput","testDataOutput")
+save("FullNetwork", "imitateMPCNetwork", "testDataInput","testDataOutput")
