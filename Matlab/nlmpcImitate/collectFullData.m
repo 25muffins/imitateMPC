@@ -45,6 +45,7 @@ Data = zeros(1e5,17);
 trajLength = zeros(100, 1);
 trajLength(1) = 1;
 for ct = 1:5e2 %500 * 20 = 10,000 so it should take ~50 mins
+    ct
    [x0, u0, goal1, goal2, ref] = randomDataNLMPC;
    %we dont actually need u0 randomized
    u0 = [0;0;0;0];

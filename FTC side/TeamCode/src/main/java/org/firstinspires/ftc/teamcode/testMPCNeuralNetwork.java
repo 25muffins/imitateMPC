@@ -22,9 +22,6 @@ import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.util.ElapsedTime;
-//import org.tensorflow.SavedModelBundle;
-//import org.tensorflow.Session;
-//import org.tensorflow.Tensor;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.util.DashboardUtil;
 import org.tensorflow.lite.Interpreter;
@@ -38,11 +35,6 @@ import java.io.IOException;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.Arrays;
-//import org.tensorflow.ndarray.IntNdArray;
-//import org.tensorflow.ndarray.NdArrays;
-//import org.tensorflow.ndarray.Shape;
-//import org.tensorflow.types.TFloat32;
-//import org.tensorflow.types.TInt32;
 
 @Config
 @Autonomous(name = "testMPCNeuralNetwork")
@@ -81,15 +73,6 @@ public class testMPCNeuralNetwork extends LinearOpMode {
         br.setDirection(DcMotorSimple.Direction.REVERSE);
         fr.setDirection(DcMotorSimple.Direction.FORWARD);
 
-
-//        Session session = null;
-//        String modelPath = "\\OneDrive\\Documents\\MATLAB\\nlmpcImitate\\savedModel";
-//        try (SavedModelBundle model = SavedModelBundle.load(modelPath, "serve")) {
-//            session = model.session();
-//        } catch (Exception e) {
-//
-//            e.printStackTrace();
-//        }
         Interpreter interpreter;
         try  {
             interpreter = new Interpreter(loadModelFile());
@@ -119,21 +102,11 @@ public class testMPCNeuralNetwork extends LinearOpMode {
         waitForStart();
         while(opModeIsActive()){
 
-
-//            IntNdArray input_matrix = NdArrays.ofInts(Shape.of(1, 9));
-//            input_matrix.set(NdArrays.vectorOf(1, 2, 3, 5, 7, 21, 23, 43, 123), 0);
-//            Tensor input_tensor = TFloat32.tensorOf(input_matrix.shape());
-//
-//            Tensor outputTensor = session.runner()
-//                    .feed(inputTensorName, inputTensor)
-//                    .fetch(outputTensorName)
-//                    .run()
-//                    .get(0); // Get the first (and likely only) output tensor
-//            outputTensor
-
-
             pose = localizer.getPoseEstimate();
+            drawField(pose, inputs); //field coordinates (weird one)
 
+
+            //mpc coordinates (normal coordinates)
             float[] inputConvertedPose = convertCoordinates(pose.getX(), pose.getY());
             float[] inputConvertedGoal1 = convertCoordinates(goal1[0], goal1[1]);
             float[] inputConvertedGoal2 = convertCoordinates(goal2[0], goal2[1]);
@@ -178,7 +151,7 @@ public class testMPCNeuralNetwork extends LinearOpMode {
             telemetry.addData("imu", getHeading());
 
 
-            drawField(pose, inputs);
+
 
             telemetry.update();
             localizer.update();
