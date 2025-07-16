@@ -94,9 +94,9 @@ save('onestepNNtest','Data', 'trajectories', 'supposedTrajectory')
 function xnext = mecanumStateFcn(x, u, Ts, rb, nx)
     % Forward kinematics matrix (body velocities)
     J = 1/4 * [
-        1,  1,  1,  1;
-        1, -1, -1, 1;
-       1/(2*rb), -1/(2*rb), 1/(2*rb), -1/(2*rb)
+        1,  -1, -1,  1; %x
+        1, 1, 1, 1; %y
+         1/(2*rb), -1/(2*rb), 1/(2*rb), -1/(2*rb)
     ];
     A = eye(nx);
     B = Ts * J;

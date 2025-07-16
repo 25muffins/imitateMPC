@@ -67,16 +67,18 @@ end
 
 
 % Create MAT file
-save('fullNLMPCtest2','Data', 'trajLength')
+save('fullNLMPCtest','Data', 'trajLength')
 
 
 function xnext = mecanumStateFcn(x, u, Ts, rb, nx)
     % Forward kinematics matrix (body velocities)
-    J = 1/4 * [
-        1,  1,  1,  1;
-        1, -1, -1, 1;
+    J = 1/4 * [% [fr, fl, br, bl]
+        1,  -1, -1,  1; %x
+        1, 1, 1, 1; %y
        1/(2*rb), -1/(2*rb), 1/(2*rb), -1/(2*rb)
     ];
+
+    
     A = eye(nx);
     B = Ts * J;
     first = A * x;

@@ -17,10 +17,6 @@ load('full1.mat')
 % 15 - u(2)
 % 16 - u(3)
 % 17 - u(4)
-% u0
-% u0
-% u0
-% u0
 
 %plotIt(6, Data, trajectories, supposedTrajectory)
 
@@ -28,7 +24,7 @@ load('full1.mat')
 
 d = Data(~all(Data == 0, 2), :); %thanks matlab help center
 
-plotFull(11,d, trajLength);
+plotFull(13,d, trajLength);
 
 
 function plotFull(ct, Data, trajLength)

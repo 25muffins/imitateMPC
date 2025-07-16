@@ -1,10 +1,10 @@
 %imitateMPC Matlab example code
 
-d1 = load('fullNLMPC.mat');
+d1 = load('full1.mat');
 
 %[sys,Vx] = createModelForMPCImLKA;
 %[mpcobj,initialState] = createMPCobjImLKA(sys);
-data = [d1.Data];  %10k
+data = [d1.Data];  %13k
 size(data)
 totalRows = size(data,1);
 validationSplitPercent = 0.1;
@@ -29,18 +29,18 @@ shuffleIdx = randperm(numTrainDataRows);
 shuffledTrainData = trainData(shuffleIdx,:);
 
 %TODO // FIX
-numObs = 7; 
+numObs = 11; % current x  y theta, goal1x, goal1y, goal2x, goal2y, u0 (x4)
 numActions = 4;
 
 %TODO // FIX
-trainInput = shuffledTrainData(:,[1:3 8:9 11:12]);
+trainInput = shuffledTrainData(:,[1:3 8:9 11:12 4:7]);
 trainOutput = shuffledTrainData(:,14:17);
-validationInput = validationData(:,[1:3 8:9 11:12]);
+validationInput = validationData(:,[1:3 8:9 11:12 4:7]);
 validationOutput = validationData(:,14:17);
 
 validationCellArray = {validationInput,validationOutput};
 
-testDataInput = testData(:,[1:3 8:9 11:12]);
+testDataInput = testData(:,[1:3 8:9 11:12 4:7]);
 testDataOutput = testData(:,14:17);
 
 rng(0);
@@ -76,7 +76,7 @@ options = trainingOptions("adam", ...
     Plots="training-progress", ...
     Metrics="mae", ...
     Shuffle="every-epoch", ...
-    MaxEpochs=100, ...
+    MaxEpochs=80, ...
     MiniBatchSize=512, ...
     ValidationData=validationCellArray, ...
     InitialLearnRate=1e-3, ...

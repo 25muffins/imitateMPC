@@ -1,9 +1,9 @@
-import firstModelSmaller
+from oldMatlabModels import secondModelNine
 import tensorflow as tf
-model = firstModelSmaller.load_model()
-model.export("savedModelSmaller")
-converter = tf.lite.TFLiteConverter.from_saved_model("savedModelSmaller")
+model = secondModelNine.load_model()
+model.export("savedSecondModelNine")
+converter = tf.lite.TFLiteConverter.from_saved_model("savedSecondModelNine")
 tflite_model = converter.convert()
 
-with open('modelSmaller.tflite', 'wb') as f:
+with open('secondModel.tflite', 'wb') as f:
   f.write(tflite_model)

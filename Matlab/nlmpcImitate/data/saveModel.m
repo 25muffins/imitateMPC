@@ -1,2 +1,2 @@
-load("network.mat")
-exportNetworkToTensorFlow(imitateMPCNetwork, 'firstModelSmaller')
+load("full1.mat")
+exportNetworkToTensorFlow(imitateMPCNetwork, 'secondModelNine')

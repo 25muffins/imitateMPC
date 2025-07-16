@@ -103,6 +103,8 @@ public class testMPCNeuralNetwork extends LinearOpMode {
         while(opModeIsActive()){
 
             pose = localizer.getPoseEstimate();
+            inputs = new float[]{(float) pose.getX(), (float) pose.getY(), (float) getHeading(),
+                    (float) goal1[0], (float) goal1[1], (float) goal2[0], (float) goal2[1]}; //100% just for field drawing
             drawField(pose, inputs); //field coordinates (weird one)
 
 
@@ -161,11 +163,10 @@ public class testMPCNeuralNetwork extends LinearOpMode {
         return imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS);
     }
     float[] convertCoordinates(double x, double y){
-        return new float[] {(float) y, (float) x};
-
+        return new float[] {(float) -y, (float) x};
     }
     private MappedByteBuffer loadModelFile() throws IOException {
-        String modelPath = "model.tflite";
+        String modelPath = "secondModel.tflite";
         AssetFileDescriptor fileDescriptor =
                 hardwareMap.appContext.getAssets().openFd(modelPath);
         FileInputStream inputStream =

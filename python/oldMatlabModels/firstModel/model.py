@@ -2,7 +2,6 @@
 #    MATLAB Deep Learning Toolbox Converter for TensorFlow Models.
 #    08-Jul-2025 10:55:23
 
-import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
 from firstModel.customLayers.ScalingLayer import ScalingLayer
