@@ -63,7 +63,7 @@ nloptions = nlmpcmoveopt;
     
 %end
 % Generate random data
-Data = zeros(1e5,17);
+Data = zeros(1e5,18);
 trajectories = zeros(1e5, 3);
 supposedTrajectory = zeros(1e3, 1e2);
 for ct = 1:1e1
@@ -72,13 +72,17 @@ for ct = 1:1e1
    u0 = [0;0;0;0];
    supposedTrajectory(2*ct-1, 1:a(1)) = ref(:,1)';
    supposedTrajectory(2*ct, 1:a(1))  = ref(:,2)';
+   goalswap= 0;
    for i = 1:10
-       
+       dist  = sqrt((x0(1) - goal1(1))^2 - (x0(2) - goal1(2))^2);
+       if ((goalswap ~= 1) && (dist <= 6))
+           goalswap = 1;
+       end
        x0(3) = wrapToPi(x0(3));
         [u, ~] = nlmpcmove(nlobj, x0, u0, ref(i+1:a(1), :), [], nloptions);
         u
         if i == 1
-            Data(ct,:) = [x0(:)', u0(:)', goal1(:)', goal2(:)', u(:)'];
+            Data(ct,:) = [x0(:)', u0(:)', goal1(:)', goal2(:)', u(:)',  goalswap];
         end
         u0 = u';
         x0 = mecanumStateFcn(x0, u, Ts, rb, nx);

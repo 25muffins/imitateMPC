@@ -1,4 +1,4 @@
-load('FullNetwork.mat')
+load('TestNetwork3.mat')
 load("onestepNNtest.mat")
 Ts = 1;       
 rb = 7.5;
@@ -10,27 +10,32 @@ rmse(testDataOutput, Ypredict)
 mean(abs(Ypredict - testDataOutput))
 
 testData = zeros(1e3,10); %start, goal1, goal2, nextTest, nextReal
-%for ct = 1:1
- %   x0 = [testDataInput(ct,1) testDataInput(ct,2) testDataInput(ct,3)];
-  %  uReal = testDataOutput(ct,:);
-   % uTest = Ypredict(ct,:);
-   % xReal = mecanumStateFcn(x0', uReal', Ts, rb, nx);
-   % xTest = mecanumStateFcn(x0', uTest', Ts, rb, nx);
-   % testData(ct,:) = [testDataInput(ct,1) testDataInput(ct,2) testDataInput(ct,4) testDataInput(ct,5) testDataInput(ct,6) testDataInput(ct,7) xTest(1) xTest(2) xReal(1) xReal(2)];
-   
-%end
 
-number = 7;
+divisors =  [72, 72, 3.1415, 72, 3.1415 72, 3.1415, 1];%, 64.2455, 64.2455, 64.2455, 64.2455];
+number = 1;
 list = zeros(10,3);
-Data(number,:)
+Data(number,:);
 x0 = [Data(number,1), Data(number,2), Data(number,3)];
+goal1 = [Data(number,8),  Data(number,9), Data(number,10)];
+goal2 = [Data(number,11), Data(number,12),  Data(number,13)];
+relativeG1 = [Data(number,8) - x0(1), Data(number,9) - x0(2)];
+relativeG2 = [Data(number,11) - x0(1), Data(number,12) - x0(2)];
+originalX0 = x0;
 u = [0;0;0;0];
-for g = 1:30
-    inputData = [x0(1), x0(2), x0(3), Data(number,8), Data(number,9), Data(number,11), Data(number,12), u(1), u(2), u(3), u(4)];
-    inputData
+for g = 1:40
+    dist1  = sqrt((x0(1) - goal1(1))^2 + (x0(2) - goal1(2))^2);
+   angle1 = atan2(x0(2) - goal1(2), x0(1) - goal1(1));
+   dist2  = sqrt((x0(1) - goal2(1))^2 + (x0(2) - goal2(2))^2);
+   angle2 = atan2(x0(2) - goal2(2), x0(1) - goal2(1));
+   distAngle1  = [dist1, angle1, goal1(3)];
+    distAngle2 = [dist2,angle2, goal2(3)];
+    inputData = [x0(1)-originalX0(1),x0(2)-originalX0(2), x0(3), distAngle1(1), distAngle1(2), distAngle2(1), distAngle2(2), Data(number,18)]%, u(1), u(2), u(3), u(4)];
+
+    inputData = inputData ./ divisors;
     Ypredict = predict(imitateMPCNetwork, inputData);
     u = Ypredict';
-    x0 = mecanumStateFcn(x0', Ypredict', Ts, rb, nx)';
+    u = u*64.2455;
+    x0 = mecanumStateFcn(x0', u, Ts, rb, nx)';
     x0(3) = wrapToPi(x0(3));
     x0;
     list(g,:) = x0';

@@ -1,4 +1,4 @@
-load('full1.mat')
+load('relative1.mat')
 
 % 1- x(x) 
 % 2 - x(y) 
@@ -24,7 +24,7 @@ load('full1.mat')
 
 d = Data(~all(Data == 0, 2), :); %thanks matlab help center
 
-plotFull(150,d, trajLength);
+plotFull(2,d, trajLength);
 
 
 function plotFull(ct, Data, trajLength)
