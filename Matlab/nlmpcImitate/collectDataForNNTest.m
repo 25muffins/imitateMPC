@@ -1,4 +1,4 @@
-function collectDataTest()
+function collectDataForNNTest()
 % Creates the MAT file 'InputDataFileImLKA.mat' based on the value of
 % 'isRandom'
 
@@ -41,7 +41,7 @@ end
 
 % Weights
 nlobj.Weights.OutputVariables = [100 100 10];     % [x y theta]
-nlobj.Weights.ManipulatedVariablesRate = [.1 .1 .1 .1];
+nlobj.Weights.ManipulatedVariablesRate = [5 5 5 5];
 nlobj.OV(3).Max = pi/4;
 nlobj.OV(3).Min = -pi/4;
 
@@ -69,16 +69,18 @@ supposedTrajectory = zeros(1e3, 1e2);
 for ct = 1:1e1
    [x0, u0, goal1, goal2, ref] = randomDataNLMPC;
    a = size(ref(:,1));
-   
+   u0 = [0;0;0;0];
    supposedTrajectory(2*ct-1, 1:a(1)) = ref(:,1)';
    supposedTrajectory(2*ct, 1:a(1))  = ref(:,2)';
    for i = 1:10
+       
+       x0(3) = wrapToPi(x0(3));
         [u, ~] = nlmpcmove(nlobj, x0, u0, ref(i+1:a(1), :), [], nloptions);
         u
-        % x0 (3), u0(4), goal1(3), goal2(3), u(4)
         if i == 1
             Data(ct,:) = [x0(:)', u0(:)', goal1(:)', goal2(:)', u(:)'];
         end
+        u0 = u';
         x0 = mecanumStateFcn(x0, u, Ts, rb, nx);
         trajectory = x0;
         trajectories(10*ct+i-10,:) = trajectory(:)';

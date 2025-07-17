@@ -3,7 +3,7 @@ function collectFullData()
 
 
 % use a different seed such as rng('shuffle') to create differing data
-rng(4)
+rng(1000)
 
 % Generate MPC object.
 Ts = 1;         % Sampling time
@@ -42,7 +42,7 @@ nloptions = nlmpcmoveopt;
 
 Data = zeros(1e5,17);
 
-trajLength = zeros(100, 1);
+trajLength = zeros(500, 1);
 trajLength(1) = 1;
 for ct = 1:5e2 %500 * 20 = 10,000 so it should take ~50 mins
     ct
@@ -57,7 +57,7 @@ for ct = 1:5e2 %500 * 20 = 10,000 so it should take ~50 mins
    for i = 1:a(1)
         x0(3) = wrapToPi(x0(3));
         [u, ~] = nlmpcmove(nlobj, x0, u0, ref(i+1:a(1), :), [], nloptions);
-        u
+        u;
         Data(trajLength(ct,1)+i-1,:) = [x0(:)', u0(:)', goal1(:)', goal2(:)', u(:)'];
         u0 = u';
         x0 = mecanumStateFcn(x0, u, Ts, rb, nx);
@@ -67,7 +67,7 @@ end
 
 
 % Create MAT file
-save('fullNLMPCtest','Data', 'trajLength')
+save('testten','Data', 'trajLength')
 
 
 function xnext = mecanumStateFcn(x, u, Ts, rb, nx)

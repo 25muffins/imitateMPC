@@ -1,13 +1,21 @@
 %imitateMPC Matlab example code
 
 d1 = load('full1.mat');
+d2 = load('full2.mat');
+d3 = load('full3.mat');
+
+
+Data1 = d1.Data(~all(d1.Data == 0, 2), :);
+Data2 = d2.Data(~all(d2.Data == 0, 2), :);
+Data3 = d3.Data(~all(d3.Data == 0, 2), :);
+
 
 %[sys,Vx] = createModelForMPCImLKA;
 %[mpcobj,initialState] = createMPCobjImLKA(sys);
-data = [d1.Data];  %13k
+data = [Data1; Data2; Data3];  %38k
 size(data)
 totalRows = size(data,1);
-validationSplitPercent = 0.1;
+validationSplitPercent = 0.2;
 numValidationDataRows = floor(validationSplitPercent*totalRows);
 
 testSplitPercent = 0.05;
@@ -45,25 +53,17 @@ testDataOutput = testData(:,14:17);
 
 rng(0);
 imitateMPCLayers = [
-    featureInputLayer(numObs)    
-    fullyConnectedLayer(45)
+    featureInputLayer(numObs) 
+    fullyConnectedLayer(450)
     reluLayer
-    fullyConnectedLayer(45)
+    dropoutLayer(0.2)
+    fullyConnectedLayer(450)
     reluLayer
-    fullyConnectedLayer(45)
+    fullyConnectedLayer(450)
     reluLayer
-    fullyConnectedLayer(45)
+    fullyConnectedLayer(450)
     reluLayer
-    fullyConnectedLayer(45)
-    reluLayer
-    fullyConnectedLayer(45)
-    reluLayer
-    fullyConnectedLayer(45)
-    reluLayer
-    fullyConnectedLayer(45)
-    reluLayer
-    fullyConnectedLayer(45)
-    reluLayer
+
     fullyConnectedLayer(numActions)
     tanhLayer
     scalingLayer(Scale=64.2456)
@@ -72,14 +72,15 @@ imitateMPCLayers = [
 %plot(dlnetwork(imitateMPCLayers))
 
 options = trainingOptions("adam", ...
+    'L2Regularization', 1e-4,...
     Verbose=true, ...
     Plots="training-progress", ...
     Metrics="mae", ...
     Shuffle="every-epoch", ...
-    MaxEpochs=80, ...
+    MaxEpochs=320, ...
     MiniBatchSize=512, ...
     ValidationData=validationCellArray, ...
-    InitialLearnRate=1e-3, ...
+    InitialLearnRate=1e-4, ...
     GradientThresholdMethod="absolute-value", ...
     ExecutionEnvironment="cpu", ...
     GradientThreshold=10, ...
@@ -92,4 +93,4 @@ imitateMPCNetwork = trainnet( ...
     "mse", ...
     options);
 
-save("FullNetwork", "imitateMPCNetwork", "testDataInput","testDataOutput")
+save("TestNetwork", "imitateMPCNetwork", "testDataInput","testDataOutput")

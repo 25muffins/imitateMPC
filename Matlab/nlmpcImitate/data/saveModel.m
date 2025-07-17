@@ -1,2 +1,2 @@
-load("full1.mat")
+load("FullNetwork.mat")
 exportNetworkToTensorFlow(imitateMPCNetwork, 'secondModelNine')

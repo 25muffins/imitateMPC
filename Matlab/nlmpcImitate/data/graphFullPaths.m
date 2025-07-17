@@ -24,10 +24,11 @@ load('full1.mat')
 
 d = Data(~all(Data == 0, 2), :); %thanks matlab help center
 
-plotFull(13,d, trajLength);
+plotFull(150,d, trajLength);
 
 
 function plotFull(ct, Data, trajLength)
+    clf
     start = trajLength(ct);
     last = trajLength(ct+1)-1;
     if last == -1 %last path fix

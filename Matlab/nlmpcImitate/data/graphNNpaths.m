@@ -1,4 +1,4 @@
-load('network')
+load('FullNetwork.mat')
 load("onestepNNtest.mat")
 Ts = 1;       
 rb = 7.5;
@@ -20,14 +20,19 @@ testData = zeros(1e3,10); %start, goal1, goal2, nextTest, nextReal
    
 %end
 
-number = 1;
+number = 7;
 list = zeros(10,3);
+Data(number,:)
 x0 = [Data(number,1), Data(number,2), Data(number,3)];
-for g = 1:10
-    inputData = [Data(number,1), Data(number,2), Data(number,3), Data(number,8), Data(number,9), Data(number,11), Data(number,12)];
+u = [0;0;0;0];
+for g = 1:30
+    inputData = [x0(1), x0(2), x0(3), Data(number,8), Data(number,9), Data(number,11), Data(number,12), u(1), u(2), u(3), u(4)];
+    inputData
     Ypredict = predict(imitateMPCNetwork, inputData);
+    u = Ypredict';
     x0 = mecanumStateFcn(x0', Ypredict', Ts, rb, nx)';
-    x0
+    x0(3) = wrapToPi(x0(3));
+    x0;
     list(g,:) = x0';
 end
 
@@ -51,11 +56,13 @@ end
 
 function xnext = mecanumStateFcn(x, u, Ts, rb, nx)
     % Forward kinematics matrix (body velocities)
-    J = 1/4 * [
-        1,  1,  1,  1;
-        1, -1, -1, 1;
+    J = 1/4 * [% [fr, fl, br, bl]
+        1,  -1, -1,  1; %x
+        1, 1, 1, 1; %y
        1/(2*rb), -1/(2*rb), 1/(2*rb), -1/(2*rb)
     ];
+
+    
     A = eye(nx);
     B = Ts * J;
     first = A * x;
@@ -69,7 +76,6 @@ function xnext = mecanumStateFcn(x, u, Ts, rb, nx)
              theta];
     xnext = xnext  + first;
 end
-
 
 function plotMPC(ct, trajectories, supposedTrajectory)
     clf
