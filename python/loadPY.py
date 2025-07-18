@@ -1,9 +1,9 @@
-from oldMatlabModels import secondModelNine
+import relativeDistAngleModel
 import tensorflow as tf
-model = secondModelNine.load_model()
-model.export("savedSecondModelNine")
-converter = tf.lite.TFLiteConverter.from_saved_model("savedSecondModelNine")
+model = relativeDistAngleModel.load_model()
+model.export("relativeDASavedModel")
+converter = tf.lite.TFLiteConverter.from_saved_model("relativeDASavedModel")
 tflite_model = converter.convert()
 
-with open('secondModel.tflite', 'wb') as f:
+with open('relativeDistAngle.tflite', 'wb') as f:
   f.write(tflite_model)

@@ -2,14 +2,15 @@
 
 
 r =  load('relativeDistAngle.mat');
+r2 = load('relativeDistAngle2.mat');
 
 
 DataRelative = r.Data(~all(r.Data==0, 2),:);
-
+DataRelative2 = r2.Data(~all(r2.Data==0, 2),:);
 
 %[sys,Vx] = createModelForMPCImLKA;
 %[mpcobj,initialState] = createMPCobjImLKA(sys);
-data = DataRelative;%[Data1; Data2; Data3];  %38k
+data = [DataRelative; DataRelative2];%[Data1; Data2; Data3];  %38k
 size(data)
 
 %normalize
@@ -95,4 +96,4 @@ imitateMPCNetwork = trainnet( ...
     "mse", ...
     options);
 
-save("TestNetwork4", "imitateMPCNetwork", "testDataInput","testDataOutput")
+save("TestNetwork6", "imitateMPCNetwork", "testDataInput","testDataOutput")

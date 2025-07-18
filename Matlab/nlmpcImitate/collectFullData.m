@@ -3,7 +3,7 @@ function collectFullData()
 
 
 % use a different seed such as rng('shuffle') to create differing data
-rng(1000)
+rng(10000)
 
 % Generate MPC object.
 Ts = 1;         % Sampling time
@@ -81,7 +81,7 @@ end
 
 
 % Create MAT file
-save('relativeDistAngle','Data', 'trajLength')
+save('relativeDistAngle2','Data', 'trajLength')
 
 
 function xnext = mecanumStateFcn(x, u, Ts, rb, nx)

@@ -1,4 +1,4 @@
-load('TestNetwork4.mat')
+load('TestNetwork6.mat')
 load("onestepNNtest.mat")
 Ts = 1;       
 rb = 7.5;
@@ -12,7 +12,7 @@ mean(abs(Ypredict - testDataOutput))
 testData = zeros(1e3,10); %start, goal1, goal2, nextTest, nextReal
 
 divisors =  [144, 144, 3.1415, 144, 3.1415 144, 3.1415, 1];%, 64.2455, 64.2455, 64.2455, 64.2455];
-number = 3;
+number = 10;
 list = zeros(10,3);
 Data(number,:);
 x0 = [Data(number,1), Data(number,2), Data(number,3)];
