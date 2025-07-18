@@ -74,7 +74,7 @@ for ct = 1:1e1
    supposedTrajectory(2*ct, 1:a(1))  = ref(:,2)';
    goalswap= 0;
    for i = 1:10
-       dist  = sqrt((x0(1) - goal1(1))^2 - (x0(2) - goal1(2))^2);
+       dist  = sqrt((x0(1) - goal1(1))^2 + (x0(2) - goal1(2))^2);
        if ((goalswap ~= 1) && (dist <= 6))
            goalswap = 1;
        end

@@ -1,4 +1,4 @@
-load('TestNetwork3.mat')
+load('TestNetwork4.mat')
 load("onestepNNtest.mat")
 Ts = 1;       
 rb = 7.5;
@@ -11,8 +11,8 @@ mean(abs(Ypredict - testDataOutput))
 
 testData = zeros(1e3,10); %start, goal1, goal2, nextTest, nextReal
 
-divisors =  [72, 72, 3.1415, 72, 3.1415 72, 3.1415, 1];%, 64.2455, 64.2455, 64.2455, 64.2455];
-number = 1;
+divisors =  [144, 144, 3.1415, 144, 3.1415 144, 3.1415, 1];%, 64.2455, 64.2455, 64.2455, 64.2455];
+number = 3;
 list = zeros(10,3);
 Data(number,:);
 x0 = [Data(number,1), Data(number,2), Data(number,3)];
@@ -22,6 +22,7 @@ relativeG1 = [Data(number,8) - x0(1), Data(number,9) - x0(2)];
 relativeG2 = [Data(number,11) - x0(1), Data(number,12) - x0(2)];
 originalX0 = x0;
 u = [0;0;0;0];
+goalswap = 0;
 for g = 1:40
     dist1  = sqrt((x0(1) - goal1(1))^2 + (x0(2) - goal1(2))^2);
    angle1 = atan2(x0(2) - goal1(2), x0(1) - goal1(1));
@@ -29,7 +30,10 @@ for g = 1:40
    angle2 = atan2(x0(2) - goal2(2), x0(1) - goal2(1));
    distAngle1  = [dist1, angle1, goal1(3)];
     distAngle2 = [dist2,angle2, goal2(3)];
-    inputData = [x0(1)-originalX0(1),x0(2)-originalX0(2), x0(3), distAngle1(1), distAngle1(2), distAngle2(1), distAngle2(2), Data(number,18)]%, u(1), u(2), u(3), u(4)];
+    if dist1 <= 6  && goalswap ~= 1
+        goalswap  = 1;
+    end
+    inputData = [x0(1)-originalX0(1),x0(2)-originalX0(2), x0(3), distAngle1(1), distAngle1(2), distAngle2(1), distAngle2(2), goalswap]%, u(1), u(2), u(3), u(4)];
 
     inputData = inputData ./ divisors;
     Ypredict = predict(imitateMPCNetwork, inputData);

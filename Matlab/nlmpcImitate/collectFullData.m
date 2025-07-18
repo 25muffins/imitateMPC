@@ -40,7 +40,7 @@ validateFcns(nlobj, rand(nx,1), rand(nu,1));
 mv0 = zeros(nu,1);
 nloptions = nlmpcmoveopt;
 
-Data = zeros(1e5,20);
+Data = zeros(1e5,18);
 
 trajLength = zeros(500, 1);
 trajLength(1) = 1;
@@ -81,7 +81,7 @@ end
 
 
 % Create MAT file
-save('relative1','Data', 'trajLength')
+save('relativeDistAngle','Data', 'trajLength')
 
 
 function xnext = mecanumStateFcn(x, u, Ts, rb, nx)

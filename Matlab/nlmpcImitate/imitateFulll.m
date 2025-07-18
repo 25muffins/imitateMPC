@@ -1,16 +1,9 @@
 %imitateMPC Matlab example code
 
-d1 = load('full1.mat');
-d2 = load('full2.mat');
-d3 = load('full3.mat');
-g= load('goalswap1.mat');
-r =  load('relative1.mat');
+
+r =  load('relativeDistAngle.mat');
 
 
-Data1 = d1.Data(~all(d1.Data == 0, 2), :);
-Data2 = d2.Data(~all(d2.Data == 0, 2), :);
-Data3 = d3.Data(~all(d3.Data == 0, 2), :);
-DataGoal = g.Data(~all(g.Data== 0, 2), :);
 DataRelative = r.Data(~all(r.Data==0, 2),:);
 
 
@@ -20,7 +13,7 @@ data = DataRelative;%[Data1; Data2; Data3];  %38k
 size(data)
 
 %normalize
-divisors =  [72, 72, 3.1415, 1, 1, 1, 1, 72, 3.1415, 3.1415, 72, 3.1415, 3.1415, 64.2455, 64.2455, 64.2455, 64.2455, 1];
+divisors =  [144, 144, 3.1415, 1, 1, 1, 1, 144, 3.1415, 3.1415, 144, 3.1415, 3.1415, 64.2455, 64.2455, 64.2455, 64.2455, 1];
 data = data./divisors;
 
 totalRows = size(data,1);
@@ -102,4 +95,4 @@ imitateMPCNetwork = trainnet( ...
     "mse", ...
     options);
 
-save("TestNetwork3", "imitateMPCNetwork", "testDataInput","testDataOutput")
+save("TestNetwork4", "imitateMPCNetwork", "testDataInput","testDataOutput")
