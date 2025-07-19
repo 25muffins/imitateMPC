@@ -3,7 +3,7 @@ function collectFullData()
 
 
 % use a different seed such as rng('shuffle') to create differing data
-rng(10000)
+rng(100000)
 
 % Generate MPC object.
 Ts = 1;         % Sampling time
@@ -59,10 +59,10 @@ for ct = 1:5e2 %500 * 20 = 10,000 so it should take ~50 mins
    relativeG2 = [goal2(1) - x0(1), goal2(2) - x0(2), goal2(3)];
    originalX0 = x0;
    for i = 1:a(1)
-       dist1  = sqrt((x0(1) - goal1(1))^2 + (x0(2) - goal1(2))^2);
-       angle1 = atan2(x0(2) - goal1(2), x0(1) - goal1(1));
-       dist2  = sqrt((x0(1) - goal2(1))^2 + (x0(2) - goal2(2))^2);
-       angle2 = atan2(x0(2) - goal2(2), x0(1) - goal2(1));
+       dist1  = sqrt((goal1(1) -  x0(1))^2 + (goal1(2) - x0(2))^2);
+       angle1 = atan2(goal1(2)  -  x0(2), goal1(1) - x0(1));
+       dist2  = sqrt((goal2(1)  -  x0(1))^2 + (goal2(2) -  x0(2))^2);
+       angle2 = atan2(goal2(2)  - x0(2), goal2(1) - x0(1));
        if ((goalswap ~= 1) & (dist1 <= 6))
            goalswap = 1;
        end
@@ -81,7 +81,7 @@ end
 
 
 % Create MAT file
-save('relativeDistAngle2','Data', 'trajLength')
+save('FIXEDrelativeDistAngle2','Data', 'trajLength')
 
 
 function xnext = mecanumStateFcn(x, u, Ts, rb, nx)

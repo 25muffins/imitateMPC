@@ -56,10 +56,6 @@ theta_path = atan2(diff(path(:,2)), diff(path(:,1))); %atan2 does all 4 quadrant
 theta_path = [theta_path; theta_path(end)]; %rads, add one more to end maybe add goal2(3)
 fullPath = [path, theta_path];
 
-if(rand >  0.1)
-    initial_theta = atan2(yRef(2) - yRef(1), xRef(2) - xRef(1));
-    x0 =  [xRand, yRand, initial_theta]';
 
-end
 ref = fullPath;
 end

@@ -50,9 +50,15 @@ public class testMPCNeuralNetwork extends LinearOpMode {
 //    public static double brSpeed = 0;
 //    public static double frSpeed = 0;
 
-    public static double speed = 0.5;
-    public static double[] goal1 = {10, -10};
-    public static double[] goal2 = {20,-20};
+    public static double speed = 0;
+    public static double neg1 = 1;
+    public static double neg2 = 1;
+    public static double neg3 = 1;
+    public static double neg4 = 1;
+
+    public static float[] goal1 = {10, -10};
+    public static float[] goal2 = {20,-20};
+    public static float[] startPos = {0,0,0};
 
 
     @Override
@@ -79,8 +85,9 @@ public class testMPCNeuralNetwork extends LinearOpMode {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        float[] inputs = {0,0,0, (float) goal1[0], (float) goal1[1], (float) goal2[0], (float) goal2[1]};
-        float[][] outputs = {{1,2,3,4}};
+        float[] inputs = {0,0,0, 0, 0, 0, 0, 0};
+        float[][] outputs = {{0,0,0,0}};
+        float goalSwitch = 0;
 
         Pose2d pose;
         double heading;
@@ -96,6 +103,8 @@ public class testMPCNeuralNetwork extends LinearOpMode {
 
         dashboard = FtcDashboard.getInstance();
         Telemetry telemetry = new MultipleTelemetry(this.telemetry, dashboard.getTelemetry());
+        telemetry.addData("updated",  "updated");
+        telemetry.update();
         drawField(new Pose2d(0,0,0), inputs);
 
 
@@ -104,39 +113,54 @@ public class testMPCNeuralNetwork extends LinearOpMode {
 
             pose = localizer.getPoseEstimate();
             inputs = new float[]{(float) pose.getX(), (float) pose.getY(), (float) getHeading(),
-                    (float) goal1[0], (float) goal1[1], (float) goal2[0], (float) goal2[1]}; //100% just for field drawing
+                    goal1[0],  goal1[1],  goal2[0], goal2[1], 0}; //100% just for field drawing
             drawField(pose, inputs); //field coordinates (weird one)
 
 
             //mpc coordinates (normal coordinates)
-            float[] inputConvertedPose = convertCoordinates(pose.getX(), pose.getY());
-            float[] inputConvertedGoal1 = convertCoordinates(goal1[0], goal1[1]);
-            float[] inputConvertedGoal2 = convertCoordinates(goal2[0], goal2[1]);
-            inputs[0] = inputConvertedPose[0];
-            inputs[1] = inputConvertedPose[1];
+            float[] ConvertedStartXY = convertCoordinates(startPos[0], startPos[1]);
+            float[] ConvertedPose = convertCoordinates((float) pose.getX(), (float) pose.getY());
+            float[] ConvertedGoal1 = convertCoordinates(goal1[0], goal1[1]);
+            float[] ConvertedGoal2 = convertCoordinates(goal2[0], goal2[1]);
+
+            //relative coordinates
+            float[] RelativePose = {ConvertedPose[0]  - ConvertedStartXY[0], ConvertedPose[1]  - ConvertedStartXY[1]};
+            float[] RelativeGoal1 = {ConvertedGoal1[0] - ConvertedStartXY[0], ConvertedGoal1[1] - ConvertedStartXY[1]};
+            float[] RelativeGoal2 = {ConvertedGoal2[0] - ConvertedStartXY[0], ConvertedGoal2[1] -  ConvertedStartXY[1]};
+            float Dist1 = (float) Math.sqrt(Math.pow(RelativeGoal1[0] - RelativePose[0], 2) +  Math.pow(RelativeGoal1[1] - RelativePose[1],2));
+            float Dist2 = (float) Math.sqrt(Math.pow(RelativeGoal2[0] - RelativePose[0], 2) +  Math.pow(RelativeGoal2[1] - RelativePose[1],2));
+            float Angle1 = (float) Math.atan2(RelativeGoal1[1] - RelativePose[1], RelativeGoal1[0] - RelativePose[0]);
+            float Angle2 = (float) Math.atan2(RelativeGoal2[1] - RelativePose[1], RelativeGoal2[0] - RelativePose[0]);
+            if(Dist1 <= 6 && goalSwitch != 1){
+                goalSwitch =  1;
+            }
+
+            inputs[0] = RelativePose[0];
+            inputs[1] = RelativePose[1];
 
 //            float HeadingChange = (float) (pose.getHeading() - Math.PI/4); //idk why i think it has something to do with the switched x and y
 //            if(HeadingChange > Math.PI) { inputs[2] = (float) (HeadingChange - 2*Math.PI);}
 //            else{ }
-            inputs[2] = (float) pose.getHeading();
-
-            inputs[3] = inputConvertedGoal1[0];
-            inputs[4] = inputConvertedGoal1[1];
-            inputs[5] = inputConvertedGoal2[0];
-            inputs[6] = inputConvertedGoal2[1];
+            inputs[2] = (float) getHeading();
+            inputs[3] = Dist1;
+            inputs[4] = Angle1;
+            inputs[5] = Dist2;
+            inputs[6] = Angle2;
+            inputs[7] = goalSwitch;
+            float[] normedInputs = normalizeInputs(inputs);
 
 
             timer.reset();
             double startTime = timer.milliseconds();
-            interpreter.run(inputs, outputs);
+            interpreter.run(normedInputs, outputs);
             double totalTime = timer.milliseconds() - startTime;
 
             // [fr, fl, br, bl]
 //            fr.setVelocity();
-            fr.setPower(speed*outputs[0][0]);
-            fl.setPower(speed*outputs[0][1]);
-            br.setPower(speed*outputs[0][2]);
-            bl.setPower(speed*outputs[0][3]);
+            fr.setPower(neg1*speed*outputs[0][0]);
+            fl.setPower(neg2*speed*outputs[0][1]);
+            br.setPower(neg3*speed*outputs[0][2]);
+            bl.setPower(neg4*speed*outputs[0][3]);
             //for testing directions
 //            fl.setPower(flSpeed);
 //            bl.setPower(blSpeed);
@@ -145,12 +169,14 @@ public class testMPCNeuralNetwork extends LinearOpMode {
 
             telemetry.addData("totalTime", totalTime);
             telemetry.addData("outputs", Arrays.toString(outputs[0]));
-            telemetry.addData("currentPos", Arrays.toString(new double[]{inputs[0], inputs[1], inputs[2]}));
-            telemetry.addData("goal1", Arrays.toString(goal1));
-            telemetry.addData("goal2", Arrays.toString(goal2));
-            telemetry.addData("parallel", fl.getCurrentPosition());
-            telemetry.addData("perp", bl.getCurrentPosition());
+            telemetry.addData("currentPosRelative", Arrays.toString(new float[]{inputs[0], inputs[1], inputs[2]}));
+            telemetry.addData("goal1Relative", Arrays.toString(RelativeGoal1));
+            telemetry.addData("goal2Relative", Arrays.toString(RelativeGoal2));
+            telemetry.addData("goal1DistAngle", Arrays.toString(new float[]{inputs[3], inputs[4]}));
+            telemetry.addData("goal2DistAngle", Arrays.toString(new float[]{inputs[5], inputs[6]}));
+            telemetry.addData("inputs", Arrays.toString(normedInputs));
             telemetry.addData("imu", getHeading());
+            telemetry.addData("goalswtich", goalSwitch);
 
 
 
@@ -162,11 +188,11 @@ public class testMPCNeuralNetwork extends LinearOpMode {
     double getHeading() {
         return imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS);
     }
-    float[] convertCoordinates(double x, double y){
-        return new float[] {(float) -y, (float) x};
+    float[] convertCoordinates(float x, float y){
+        return new float[] {x, y}; //for some reason this configuration works idk whyu im too lazy to figure it out
     }
     private MappedByteBuffer loadModelFile() throws IOException {
-        String modelPath = "secondModel.tflite";
+        String modelPath = "relativeDistAngle.tflite";
         AssetFileDescriptor fileDescriptor =
                 hardwareMap.appContext.getAssets().openFd(modelPath);
         FileInputStream inputStream =
@@ -185,9 +211,21 @@ public class testMPCNeuralNetwork extends LinearOpMode {
                 new LineSegment(new Vector2d(inputs[0], inputs[1]),
                         new Vector2d(goal1[0], goal1[1])))));
         DashboardUtil.drawSampledPath(fieldOverlay, new Path(new PathSegment(
-                new LineSegment(new Vector2d(inputs[3], inputs[4]),
+                new LineSegment(new Vector2d(goal1[0], goal1[1]),
                         new Vector2d(goal2[0], goal2[1])))));
         dashboard.sendTelemetryPacket(packet);
+    }
+    public float[] normalizeInputs(float[] inputs){
+        float[] normInputs = {1,2,3,4,5,6,7,8};
+        normInputs[0] = inputs[0]/144;
+        normInputs[1] = inputs[1]/144;
+        normInputs[2] = (float) (inputs[2]/3.1415);
+        normInputs[3] = inputs[3]/144;
+        normInputs[4] = (float) (inputs[4]/3.1415);
+        normInputs[5] = inputs[5]/144;
+        normInputs[6] = (float) (inputs[6]/3.1415);
+        normInputs[7] = inputs[7];
+        return normInputs;
     }
 
 }
