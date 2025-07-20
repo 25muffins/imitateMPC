@@ -22,9 +22,9 @@ maxRev = 300 / 60; %per second
 wheelCircumference = 4.09 * pi;
 
 nu = 4;           % [fr, fl, br, bl]
-nx = 3;           % [x; y; theta; vx, vy, omega]
+nx = 6;           % [x; y; theta; vx, vy, omega]
 ny = 3;
-N=15;
+N=30;
 planner = nlmpcMultistage(N, nx, nu);
 planner.Ts = Ts;
 
@@ -37,11 +37,11 @@ for i = 1:4
 end
 for i = 2:N
     planner.Stages(i).CostFcn = @stageCost;
-    planner.Stages(i).ParameterLength = 3;
+    planner.Stages(i).ParameterLength = 6;
 end
 planner.Stages(N+1).CostFcn = @terminalCost;
-planner.Stages(N+1).ParameterLength = 3;
-goal = [1;1;1];
+planner.Stages(N+1).ParameterLength = 6;
+goal = [1;1;1; 0; 0;  0];
 simData.StageParameter = repmat(goal', N, 1);
 simData = getSimulationData(planner, 'TerminalState');
 simData.TerminalState = goal;
@@ -49,69 +49,48 @@ simData.TerminalState = goal;
 validateFcns(planner, zeros(nx,1), zeros(nu,1), simData);
 
 
-nlobj = nlmpc(nx, nx, nu);  % states, outputs, inputs
-nlobj.Ts = Ts;
-nlobj.PredictionHorizon = 10;
-nlobj.ControlHorizon = 5;
-nlobj.Model.StateFcn = @(x, u) mecanumStateFcn(x, u);
-nlobj.Model.IsContinuousTime = false;
-nlobj.Model.OutputFcn = @(x, u) x;  % outputs = states
-% Input constraints (wheel speeds)
-for i = 1:4
-    nlobj.MV(i).Min = -maxRev * wheelCircumference;
-    nlobj.MV(i).Max = maxRev * wheelCircumference;
-end
 
-% Weights
-nlobj.Weights.OutputVariables = [100 100 10];     % [x y theta]
-nlobj.Weights.ManipulatedVariablesRate = [5 5 5 5];
-nlobj.OV(3).Max = pi/4;
-nlobj.OV(3).Min = -pi/4;
-
-% Validate functions
-validateFcns(nlobj, rand(nx,1), rand(nu,1));
-mv0 = zeros(nu,1);
-nloptions = nlmpcmoveopt;
-%nloptions.Parameters = {Ts, r, l, w};
-
-
-% Generate random data
-Data = zeros(10,18);
-
-x0 = [0, 0, 0];
-u0 = [0,0,0,0];
-goal1 = [50, -10, 1.5];
-goal2 = [-20, 20, 1.5];
+goal1 = [50, -50, 0.5,  0, 0, 0];
+goal2 = [-3, 20, 2, 0, 0, 0];
 waypoints =  [goal1;  goal2];
 
 clf
 % Initialize
-x = [0; 0; 0];
+x = [0; 0; 0; 0; 0; 0];
 u = zeros(nu,1);
 size(waypoints,1)
-for wp = 1:size(waypoints,1)
-    nextGoal = waypoints(wp,:)';
-    fprintf("Navigating to waypoint %d: [%.1f, %.1f]\n", wp, nextGoal(1), nextGoal(2));
-    for i = 2:N
-        planner.Stages(i).CostFcn = @stageCost;
-        planner.Stages(i).ParameterLength = 3;
-    end
-    simData = getSimulationData(planner , 'TerminalState');
-    planner.Stages(N+1).CostFcn = @terminalCost;
-    planner.Stages(N+1).ParameterLength = 3;
-    simData.StageParameter = repmat(nextGoal, N, 1);
-    
-    simData.TerminalState = nextGoal;
 
-    [u, ~, info] = nlmpcmove(planner, x, u, simData);
-    simData.StageParameter;
-    xTrackHistory = info.Xopt
-    x = xTrackHistory(end, :);
-    hold on
-    plot(xTrackHistory(:, 1),xTrackHistory(:, 2))
+midGoal = waypoints(1,:)'
+finalGoal = waypoints(2,:)'
+for i = 2:N
+    planner.Stages(i).CostFcn = @stageCost;
+    planner.Stages(i).ParameterLength = 6;
+end
+simData = getSimulationData(planner , 'TerminalState');
+planner.Stages(N+1).CostFcn = @terminalCost;
+planner.Stages(N+1).ParameterLength = 6;
+sp =  [repmat(midGoal, N/2, 1); repmat(finalGoal, N/2, 1)];
+simData.StageParameter = sp;
+
+simData.TerminalState = finalGoal;
+
+[u, ~, info] = nlmpcmove(planner, x, u, simData);
+simData.StageParameter;
+xTrackHistory = info.Xopt
+uHistory  = info.MVopt;
+hold on
+plot(xTrackHistory(:, 1),xTrackHistory(:, 2))
+plot(1:31, xTrackHistory(1:31,3))
+a  = size(uHistory);
+x0 = [0;0;0;0;0;0];
+for  i = 1:a(1)
+
+    plot(x0(1), x0(2), 'bo');
+    x0 =  mecanumStateFcn(x0, uHistory(i,:)')
+    
 end
 plot(waypoints(:,1), waypoints(:,2), 'go');
-
+Data = zeros(10,10);
 % Create MAT file
 save('MPCmadePath','Data')
 
@@ -123,7 +102,7 @@ function returnState = mecanumStateFcn(x, u)
         1, 1, 1, 1; %y
        1/(2*7.5), -1/(2*7.5), 1/(2*7.5), -1/(2*7.5)
     ];
-    A = eye(3);
+    A = eye(6);
     B = 1 * J;
     first = A * x;
     second =  B  * u;
@@ -135,21 +114,49 @@ function returnState = mecanumStateFcn(x, u)
     xvel = [xvalue;
              yvalue;
              theta];
-    xnext = xvel + first;
+    xnext = [xvalue + first(1);
+             yvalue + first(2);
+             theta + first(3)];
     xnext(3) = wrapToPi(xnext(3));
-    returnState  = xnext;
+    returnState  = [xnext; xvel];
 
 end
 function c = stageCost(stage,x,u, stageParam)
     goal = stageParam;
     posErr = norm(x(1:2) - goal(1:2));
     angErr = wrapToPi(x(3) - goal(3));
-    c = .01 * sum(u.^2);
+    velErr = norm(x(4:5)); 
+    angVelErr = abs(x(6)); 
+    
+
+    distanceToGoal = posErr;
+
+    posWeight = 500;   
+    angWeight = 50;
+    trackingCost = posWeight * posErr^2 + angWeight * angErr^2;
+
+    velCost = 2000;
+    velocityCost = velCost * velErr^2 + 20 * angVelErr^2;
+    controlCost = 0.1 * sum(u.^2);
+    controlSmoothness = 0.1 * sum(abs(diff(u)));
+    
+    % Combine costs
+    c = trackingCost + velocityCost + controlCost;
 end
 function c = terminalCost(stage, x,u, stageParam)
     goal = stageParam;
+
     posErr = norm(x(1:2) - goal(1:2));
     angErr = wrapToPi(x(3) - goal(3));
-    c = 100 * posErr^2 + 10 * angErr^2;
+    velErr = norm(x(4:5));
+    angVelErr = abs(x(6));
+    
+    positionCost = 1000 * posErr^2;      
+    orientationCost = 500 * angErr^2;    
+    velocityCost = 200 * velErr^2;       
+    angularVelCost = 200 * angVelErr^2; 
+    
+    % Combine terminal costs
+    c = positionCost + orientationCost + velocityCost + angularVelCost;
 end
 end

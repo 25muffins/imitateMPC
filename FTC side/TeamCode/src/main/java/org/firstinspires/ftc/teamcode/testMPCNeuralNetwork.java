@@ -51,6 +51,7 @@ public class testMPCNeuralNetwork extends LinearOpMode {
 //    public static double frSpeed = 0;
 
     public static double speed = 0;
+    public static double speed2 = 0;
     public static double neg1 = 1;
     public static double neg2 = 1;
     public static double neg3 = 1;
@@ -133,6 +134,9 @@ public class testMPCNeuralNetwork extends LinearOpMode {
             float Angle2 = (float) Math.atan2(RelativeGoal2[1] - RelativePose[1], RelativeGoal2[0] - RelativePose[0]);
             if(Dist1 <= 6 && goalSwitch != 1){
                 goalSwitch =  1;
+            }
+            if(Dist2 <=6 && goalSwitch == 1){
+                speed = speed2;
             }
 
             inputs[0] = RelativePose[0];

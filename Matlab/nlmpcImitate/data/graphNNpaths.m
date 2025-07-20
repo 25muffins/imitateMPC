@@ -1,4 +1,4 @@
-load('FastStrafeNetwork.mat')
+load('linearNetwork.mat')
 load("testNNdata.mat")
 Ts = 1;       
 rb = 7.5;

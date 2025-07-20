@@ -41,8 +41,10 @@ howManyDots = ceil(totalDist/6);
 pointsInBetween = linspace(0, totalDist, howManyDots);%how many points in between
 %at this distance, we are at this x value, in between distances, we are at
 %t
-x2 = interp1(distAtEachStep, xRef, pointsInBetween, 'makima');
-y2 = interp1(distAtEachStep, yRef, pointsInBetween,'makima');
+clf
+hold on
+x2 = interp1(distAtEachStep, xRef, pointsInBetween, 'linear');
+y2 = interp1(distAtEachStep, yRef, pointsInBetween,'linear');
 %plot(x2, y2);
 x3 = interp1(distAtEachStep, xRef, pointsInBetween, 'spline');
 y3 = interp1(distAtEachStep, yRef, pointsInBetween,'spline');
@@ -51,7 +53,7 @@ x4 = interp1(distAtEachStep, xRef, pointsInBetween, 'pchip');
 y4 = interp1(distAtEachStep, yRef, pointsInBetween,'pchip');
 %plot(x4, y4, 'ro');
 
-path=[x4', y4']; %make sure to invert
+path=[x2', y2']; %make sure to invert
 theta_path = atan2(diff(path(:,2)), diff(path(:,1))); %atan2 does all 4 quadrants
 theta_path = [theta_path; theta_path(end)]; %rads, add one more to end maybe add goal2(3)
 fullPath = [path, theta_path];

@@ -1,9 +1,9 @@
-import fastStrafe
+import fastStrafe2
 import tensorflow as tf
-model = fastStrafe.load_model()
-model.export("fastStrafeSavedModel")
-converter = tf.lite.TFLiteConverter.from_saved_model("fastStrafeSavedModel")
+model = fastStrafe2.load_model()
+model.export("fastStrafeSavedModel2")
+converter = tf.lite.TFLiteConverter.from_saved_model("fastStrafeSavedModel2")
 tflite_model = converter.convert()
 
-with open('fastStrafe.tflite', 'wb') as f:
+with open('fastStrafe2.tflite', 'wb') as f:
   f.write(tflite_model)
