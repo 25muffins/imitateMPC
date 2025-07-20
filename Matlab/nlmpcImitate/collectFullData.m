@@ -3,7 +3,7 @@ function collectFullData()
 
 
 % use a different seed such as rng('shuffle') to create differing data
-rng(100000)
+rng(500000)
 
 % Generate MPC object.
 Ts = 1;         % Sampling time
@@ -67,12 +67,12 @@ for ct = 1:5e2 %500 * 20 = 10,000 so it should take ~50 mins
            goalswap = 1;
        end
         x0(3) = wrapToPi(x0(3));
-        [u, ~] = nlmpcmove(nlobj, x0, u0, ref(i+1:a(1), :), [], nloptions);
+        [u, ~,  info] = nlmpcmove(nlobj, x0, u0, ref(i+1:a(1), :), [], nloptions);
         u;
         relativeX0 = [x0(1) - originalX0(1), x0(2) - originalX0(2), x0(3)];
         distAngle1  = [dist1, angle1, goal1(3)];
         distAngle2 = [dist2,angle2, goal2(3)];
-        Data(trajLength(ct,1)+i-1,:) = [relativeX0(:)', u0(:)', distAngle1(:)', distAngle2(:)', u(:)',  goalswap];
+        Data(trajLength(ct,1)+i-1,:) = [relativeX0(:)', u0(:)', relativeG1(:)', relativeG2(:)', u(:)',  goalswap];
         u0 = u';
         x0 = mecanumStateFcn(x0, u, Ts, rb, nx);
    end
@@ -81,13 +81,13 @@ end
 
 
 % Create MAT file
-save('FIXEDrelativeDistAngle2','Data', 'trajLength')
+save('XY1','Data', 'trajLength')
 
 
 function xnext = mecanumStateFcn(x, u, Ts, rb, nx)
     % Forward kinematics matrix (body velocities)
     J = 1/4 * [% [fr, fl, br, bl]
-        1,  -1, -1,  1; %x
+        1/2,  -1/2, -1/2,  1/2; %x divid by 2 to make strafing faster (hopefully)
         1, 1, 1, 1; %y
        1/(2*rb), -1/(2*rb), 1/(2*rb), -1/(2*rb)
     ];

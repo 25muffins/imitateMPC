@@ -192,7 +192,7 @@ public class testMPCNeuralNetwork extends LinearOpMode {
         return new float[] {x, y}; //for some reason this configuration works idk whyu im too lazy to figure it out
     }
     private MappedByteBuffer loadModelFile() throws IOException {
-        String modelPath = "relativeDistAngle.tflite";
+        String modelPath = "fastStrafe.tflite";
         AssetFileDescriptor fileDescriptor =
                 hardwareMap.appContext.getAssets().openFd(modelPath);
         FileInputStream inputStream =

@@ -1,2 +1,2 @@
-load("TestNetwork6.mat")
-exportNetworkToTensorFlow(imitateMPCNetwork, 'relativeDistAngleModel')
+load("FastStrafeNetwork.mat")
+exportNetworkToTensorFlow(imitateMPCNetwork, 'fastStrafe')

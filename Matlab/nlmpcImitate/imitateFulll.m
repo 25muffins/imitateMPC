@@ -3,14 +3,22 @@
 
 r =  load('FIXEDrelativeDistAngle1.mat');
 r2 =  load('FIXEDrelativeDistAngle2.mat');
+f = load('fasterStrafing.mat');
+f2 = load('fasterStrafing2.mat');
+f3 = load('fasterStrafing3.mat');
+xy =  load('XY1.mat');
 
 
 DataRelative = r.Data(~all(r.Data==0, 2),:);
 DataRelative2 = r2.Data(~all(r2.Data==0, 2),:);
+DataF = f.Data(~all(f.Data==0, 2), :);
+DataF2 = f2.Data(~all(f2.Data==0, 2), :);
+DataF3 = f3.Data(~all(f3.Data==0, 2), :);
+DataXY = xy.Data(~all(xy.Data==0,2), :);
 
 %[sys,Vx] = createModelForMPCImLKA;
 %[mpcobj,initialState] = createMPCobjImLKA(sys);
-data = [DataRelative; DataRelative2];%[Data1; Data2; Data3];  %38k
+data = [DataF];%[Data1; Data2; Data3];  %38k
 size(data)
 
 %normalize
@@ -59,14 +67,17 @@ imitateMPCLayers = [
     featureInputLayer(numObs) 
     fullyConnectedLayer(450)
     reluLayer
-    dropoutLayer(0.2)
-    fullyConnectedLayer(450)
+    fullyConnectedLayer(400)
     reluLayer
-    fullyConnectedLayer(450)
+    fullyConnectedLayer(300)
     reluLayer
-    fullyConnectedLayer(450)
+    fullyConnectedLayer(200)
     reluLayer
-
+    fullyConnectedLayer(100)
+    reluLayer
+    fullyConnectedLayer(45)
+    reluLayer
+    
 
     fullyConnectedLayer(numActions)
     tanhLayer
@@ -94,7 +105,7 @@ imitateMPCNetwork = trainnet( ...
     trainInput, ...
     trainOutput, ...
     imitateMPCLayers, ...
-    "mse", ...
+    "mae", ...
     options);
 
-save("TestNetwork6", "imitateMPCNetwork", "testDataInput","testDataOutput")
+save("FastStrafeNetwork", "imitateMPCNetwork", "testDataInput","testDataOutput")

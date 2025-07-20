@@ -94,7 +94,7 @@ end
 
 
 % Create MAT file
-save('onestepNNtest','Data', 'trajectories', 'supposedTrajectory')
+save('testNNdata','Data', 'trajectories', 'supposedTrajectory')
 
 
 function xnext = mecanumStateFcn(x, u, Ts, rb, nx)

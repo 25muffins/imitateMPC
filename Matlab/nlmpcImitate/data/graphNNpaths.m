@@ -1,5 +1,5 @@
-load('TestNetwork6.mat')
-load("onestepNNtest.mat")
+load('FastStrafeNetwork.mat')
+load("testNNdata.mat")
 Ts = 1;       
 rb = 7.5;
 nx = 3;    
@@ -11,8 +11,8 @@ mean(abs(Ypredict - testDataOutput))
 
 testData = zeros(1e3,10); %start, goal1, goal2, nextTest, nextReal
 
-divisors =  [144, 144, 3.1415, 144, 3.1415 144, 3.1415, 1];%, 64.2455, 64.2455, 64.2455, 64.2455];
-number = 2;
+divisors =  [144, 144, 3.1415, 144, 3.1415, 144, 3.1415, 1];%, 64.2455, 64.2455, 64.2455, 64.2455];
+number = 1;
 list = zeros(10,3);
 Data(number,:);
 x0 = [Data(number,1), Data(number,2), Data(number,3)];
@@ -23,7 +23,7 @@ relativeG2 = [Data(number,11) - x0(1), Data(number,12) - x0(2)];
 originalX0 = x0;
 u = [0;0;0;0];
 goalswap = 0;
-for g = 1:20
+for g = 1:30
     dist1  = sqrt((goal1(1) - x0(1))^2 + (goal1(2) -  x0(2))^2);
    angle1 = atan2(goal1(2) -  x0(2), goal1(1)  -  x0(1));
    dist2  = sqrt((goal2(1) - x0(1))^2 + (goal2(2) -  x0(2))^2);
@@ -66,7 +66,7 @@ end
 function xnext = mecanumStateFcn(x, u, Ts, rb, nx)
     % Forward kinematics matrix (body velocities)
     J = 1/4 * [% [fr, fl, br, bl]
-        1,  -1, -1,  1; %x
+        1/2,  -1/2, -1/2,  1/2; %x
         1, 1, 1, 1; %y
        1/(2*rb), -1/(2*rb), 1/(2*rb), -1/(2*rb)
     ];
