@@ -24,7 +24,6 @@ wheelCircumference = 4.09 * pi;
 nu = 4;           % [fr, fl, br, bl]
 nx = 6;           % [x; y; theta; vx, vy, omega]
 ny = 3;
-N=20;
 
 %goal1 = [-72, -50, 0.5,  0, 0, 0];
 %goal2 = [-30, 72, 2, 0, 0, 0];
@@ -35,7 +34,7 @@ N=20;
 %if mod(approximateN,  2) ==  1
 %    approximateN = approximateN+1;
 %end
-N = 28;
+N = 32;
 
 planner = nlmpcMultistage(N, nx, nu);
 planner.Ts = Ts;
@@ -72,13 +71,11 @@ clf
 rng(0)
 %clf
 % initialize
-d = zeros(1,31); %rows will automatically fill up
-for ct= 1:1e0
+d = zeros(1,34); %rows will automatically fill up
+for ct= 1:5e2
     ct
-    %goal1 = [144*rand-72, 144*rand-72, 2*pi*rand - pi,  0, 0, 0]
-    %goal2 = [144*rand-72, 144*rand-72, 2*pi*rand - pi, 0, 0, 0]
-    goal1 = [37.909839648058835,  47.008733717186161, 0.461585340534781,0,0 0]
-    goal2 = [43.354909003121207, -38.450659188434670, 2.717280830362103, 0, 0, 0]
+    goal1 = [144*rand-72, 144*rand-72, 2*pi*rand - pi,  0, 0, 0]
+    goal2 = [144*rand-72, 144*rand-72, 2*pi*rand - pi, 0, 0, 0]
     waypoints =  [goal1;  goal2];
     x = [0; 0; 0; 0; 0; 0];
     u = zeros(nu,1);
@@ -89,9 +86,11 @@ for ct= 1:1e0
     midGoal = waypoints(1,:)';
     finalGoal = waypoints(2,:)';
     for i = 2:N
-    
-        planner.Stages(i).CostFcn = @stageCost;
-    
+        if i == (N/2+1)
+            planner.Stages(i).CostFcn = @terminalCost;
+        else
+            planner.Stages(i).CostFcn = @stageCost;
+        end
         planner.Stages(i).ParameterLength = 6;
     end
     simData = getSimulationData(planner , 'TerminalState');
@@ -118,7 +117,8 @@ for ct= 1:1e0
     % goal1x, goal1y, goal1theta,  goal1xvel, goal1yvel,  goal1thetavel, goal1dist, goal1angle
     % goal2x, goal2y, goal2theta,  goal2xvel, goal2yvel,  goal2thetavel, goal2dist, goal2angle
     % optimal u  (x4), past u (x4), goalswitch 
-    %total size = 31
+    % nextxVel nextyVel, nextthetaVel
+    %total size = 34
     
     goalswitch = 0;
     for  i = 1:a(1)
@@ -137,15 +137,20 @@ for ct= 1:1e0
         else  lastU =  uHistory(i-1,:);
         end
     
-        if(i >= (a(1)/2))
+        if(i >= (a(1)/2 + 1))
             goalswitch = 1;
         end
-        d((ct-1) * a(1) + i,:) =  [currentPos(:)',  g1(:)', g2(:)', optimalU(:)', lastU(:)', goalswitch];
+
+        if(i==a(1)) nextVels = [0,0,0];
+        else nextVels = xTrackHistory(i+1, 4:6);
+        end
+        
+        d((ct-1) * a(1) + i,:) =  [currentPos(:)',  g1(:)', g2(:)', optimalU(:)', lastU(:)', goalswitch, nextVels];
     end
 end
 
 % Create MAT file
-%save('MPCmadePath','d')
+save('MPCmadePathWVels','d')
 
 
 function returnState = mecanumStateFcn(x, u)
@@ -185,7 +190,7 @@ function c = stageCost(stage,x,u, stageParam)
     distanceToGoal = posErr;
 
     posWeight = 300;
-    angWeight = 10000;
+    angWeight = 100000;
     trackingCost = posWeight * posErr^2 + angWeight * angErr^2;
 
     velCost = 120;
@@ -197,18 +202,17 @@ function c = stageCost(stage,x,u, stageParam)
 end
 function c = terminalCost(stage, x,u, stageParam)
     goal = stageParam;
-
     posErr = norm(x(1:2) - goal(1:2));
     angErr = abs(wrapToPi(x(3) - goal(3)));
-    velErr = norm(x(4:5));
-    angVelErr = abs(x(6) -  goal(6));
+    velErr = norm(x(4:5)) - norm(goal(4:5)); 
+    angVelErr = abs(x(6)  - goal(6)); 
     
-    positionCost = 100 * posErr^2;      
-    orientationCost = 20 * angErr^2;    
-    velocityCost = 20 * velErr^2;       
-    angularVelCost = 20 * angVelErr^2; 
+    positionCost = 300 * posErr^2;      
+    orientationCost = 30000 * angErr^2;    
+    velocityCost = 120 * velErr^2;       
+    angularVelCost = 120 * angVelErr^2; 
     
     % Combine terminal costs
-    c = positionCost + orientationCost + velocityCost + angularVelCost;
+    c = 2*(positionCost + orientationCost + velocityCost + angularVelCost);
 end
 end

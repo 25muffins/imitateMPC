@@ -1,4 +1,4 @@
-
+load("PathGenNetwork.mat")
 % Creates the MAT file 'InputDataFileImLKA.mat' based on the value of
 % 'isRandom'
 
@@ -71,8 +71,8 @@ planner.States(3).Max =  pi;
 clf
 for ct= 1:1e0
     ct
-    goal1 = [100,  -40, 0.46,0,0 0];
-    goal2 = [20, 30, 2.71, 0, 0, 0];
+    goal1 = [70,  40, 0.46,0,0 0];
+    goal2 = [20, -10, 2.71, 0, 0, 0];
     waypoints =  [goal1;  goal2];
     x = [0; 0; 0; 0; 0; 0];
     u = zeros(nu,1);
@@ -114,35 +114,39 @@ for ct= 1:1e0
     % optimal u  (x4), past u (x4), goalswitch 
     %total size = 31
     
-    divisors =  [72, 72, 3.1415, 30, 30, 1,...
+    divisors =  [72, 72, 3.1415, 30, 30, 5,...
         72, 72, 3.1415,...
         72, 72, 3.1415,...
-        1];
-    x0 = [0;0;0;0;0;0]
+        5];
+    x0 = [0;0;0;0;0;0];
     goalswitch = 0;
-    for  i = 1:6
+    testData = zeros(1,10);
+    for  i = 1:50
         plot(x0(1), x0(2),'k>')
-        dist1 = sqrt((x0(1)-goal1(1))^2 +  (x0(2)-goal2(2))^2);
+        
+        dist1 = sqrt((x0(1)-goal1(1))^2 +  (x0(2)-goal1(2))^2);
         dist2 = sqrt((x0(1)-goal2(1))^2 +  (x0(2)-goal2(2))^2);
         angle1 =  atan2(goal1(2)  -  x0(2), goal1(1) - x0(1));
         angle2 =  atan2(goal2(2)  -  x0(2), goal2(1) - x0(1));
-        if(dist1 <= 6 && goalswitch~=1)
+        if(dist1 <= 2 && goalswitch~=1)
             goalswitch  = 1;
         end
 
-        inputData = [x0(1:6)', goal1(1:3), goal2(1:3), goalswitch]
+        inputData = [x0(1:6)', goal1(1:3), goal2(1:3), goalswitch];
 
         inputData = inputData ./ divisors;
         Ypredict = predict(imitateMPCNetwork, inputData);
         u = Ypredict';
-        u = u*64.2455;
-        x0 = mecanumStateFcn(x0, u);
+        u = [u(1) * 30, u(2) * 30, u(3) * 5];
+        %u = u*64.2455;
+        x0 = velStateFcn(x0, u);
+        testData(i,:) =  [x0(:)', u(:)', goalswitch];
         
     end
 end
 
 % Create MAT file
-%save('MPCmadePath','d')
+save('testData','testData')
 
 
 function returnState = mecanumStateFcn(x, u)
@@ -167,6 +171,18 @@ function returnState = mecanumStateFcn(x, u)
     xnext = [xvalue + first(1);
              yvalue + first(2);
              theta];
+    xnext(3) = wrapToPi(xnext(3));
+    returnState  = [xnext; xvel];
+
+end
+function returnState = velStateFcn(x, u)
+
+    xvel = [u(1);
+             u(2);
+             u(3)];
+    xnext = [x(1) + xvel(1);
+             x(2) + xvel(2);
+             x(3) +  xvel(3)];
     xnext(3) = wrapToPi(xnext(3));
     returnState  = [xnext; xvel];
 
