@@ -52,10 +52,9 @@ public class testMPCNeuralNetwork extends LinearOpMode {
 
     public static double speed = 0;
     public static double speed2 = 0;
-    public static double neg1 = 1;
-    public static double neg2 = 1;
-    public static double neg3 = 1;
-    public static double neg4 = 1;
+    public static double velo = 0;
+    public static double velo2  = 0;
+
 
     public static float[] goal1 = {10, -10};
     public static float[] goal2 = {20,-20};
@@ -132,11 +131,12 @@ public class testMPCNeuralNetwork extends LinearOpMode {
             float Dist2 = (float) Math.sqrt(Math.pow(RelativeGoal2[0] - RelativePose[0], 2) +  Math.pow(RelativeGoal2[1] - RelativePose[1],2));
             float Angle1 = (float) Math.atan2(RelativeGoal1[1] - RelativePose[1], RelativeGoal1[0] - RelativePose[0]);
             float Angle2 = (float) Math.atan2(RelativeGoal2[1] - RelativePose[1], RelativeGoal2[0] - RelativePose[0]);
-            if(Dist1 <= 6 && goalSwitch != 1){
+            if(Dist1 <= 2 && goalSwitch != 1){
                 goalSwitch =  1;
             }
-            if(Dist2 <=6 && goalSwitch == 1){
+            if(Dist2 <=2 && goalSwitch == 1){
                 speed = speed2;
+                velo = velo2;
             }
 
             inputs[0] = RelativePose[0];
@@ -160,11 +160,15 @@ public class testMPCNeuralNetwork extends LinearOpMode {
             double totalTime = timer.milliseconds() - startTime;
 
             // [fr, fl, br, bl]
-//            fr.setVelocity();
-            fr.setPower(neg1*speed*outputs[0][0]);
-            fl.setPower(neg2*speed*outputs[0][1]);
-            br.setPower(neg3*speed*outputs[0][2]);
-            bl.setPower(neg4*speed*outputs[0][3]);
+            fr.setPower(speed*outputs[0][0]);
+            fl.setPower(speed*outputs[0][1]);
+            br.setPower(speed*outputs[0][2]);
+            bl.setPower(speed*outputs[0][3]);
+
+//            fr.setVelocity(velo*outputs[0][0]);
+//            fl.setVelocity(velo*outputs[0][1]);
+//            br.setVelocity(velo*outputs[0][2]);
+//            bl.setVelocity(velo*outputs[0][3]);
             //for testing directions
 //            fl.setPower(flSpeed);
 //            bl.setPower(blSpeed);
@@ -196,7 +200,7 @@ public class testMPCNeuralNetwork extends LinearOpMode {
         return new float[] {x, y}; //for some reason this configuration works idk whyu im too lazy to figure it out
     }
     private MappedByteBuffer loadModelFile() throws IOException {
-        String modelPath = "fastStrafe.tflite";
+        String modelPath = "linearNetwork.tflite";
         AssetFileDescriptor fileDescriptor =
                 hardwareMap.appContext.getAssets().openFd(modelPath);
         FileInputStream inputStream =

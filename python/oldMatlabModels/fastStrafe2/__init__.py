@@ -1,7 +1,8 @@
 #    This file was created by
 #    MATLAB Deep Learning Toolbox Converter for TensorFlow Models.
-#    19-Jul-2025 14:00:00
+#    20-Jul-2025 13:12:36
 
+import oldMatlabModels.fastStrafe2.model
 import os
 
 def load_model(load_weights=True, debug=False):

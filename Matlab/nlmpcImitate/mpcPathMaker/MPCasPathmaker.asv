@@ -26,11 +26,11 @@ nx = 6;           % [x; y; theta; vx, vy, omega]
 ny = 3;
 N=20;
 
-%goal1 = [-72, -50, 0.5,  0, 0, 0];
-%goal2 = [-30, 72, 2, 0, 0, 0];
-%waypoints =  [goal1;  goal2];
-%dist1 = sqrt(goal1(1)^2   + goal1(2^2));
-%dist2 = sqrt((goal1(1) - goal2(1))^2  + (goal1(2) - goal2(2))^2);
+goal1 = [-72, -50, 0.5,  0, 0, 0];
+goal2 = [-30, 72, 2, 0, 0, 0];
+waypoints =  [goal1;  goal2];
+dist1 = sqrt(goal1(1)^2   + goal1(2^2));
+dist2 = sqrt((goal1(1) - goal2(1))^2  + (goal1(2) - goal2(2))^2);
 %approximateN = round((dist1+dist2)/10);
 %if mod(approximateN,  2) ==  1
 %    approximateN = approximateN+1;
@@ -68,20 +68,16 @@ planner.States(3).Max =  pi;
 %validateFcns(planner, zeros(nx,1), zeros(nu,1), simData);
 
 
-clf
-rng(0)
+
+
 %clf
 % initialize
-d = zeros(1,31); %rows will automatically fill up
-for ct= 1:1e0
-    ct
-    %goal1 = [144*rand-72, 144*rand-72, 2*pi*rand - pi,  0, 0, 0]
-    %goal2 = [144*rand-72, 144*rand-72, 2*pi*rand - pi, 0, 0, 0]
-    goal1 = [37.909839648058835,  47.008733717186161, 0.461585340534781,0,0 0]
-    goal2 = [43.354909003121207, -38.450659188434670, 2.717280830362103, 0, 0, 0]
-    waypoints =  [goal1;  goal2];
+Data = zeros(1000,31);
+for ct= 1:5e0
+    
     x = [0; 0; 0; 0; 0; 0];
     u = zeros(nu,1);
+    size(waypoints,1)
     for i = 1:4
         planner.MV(i).Min = -maxRev * wheelCircumference;
         planner.MV(i).Max = maxRev * wheelCircumference;
@@ -105,14 +101,15 @@ for ct= 1:1e0
     [u, ~, info] = nlmpcmove(planner, x, u, simData);
     xTrackHistory = info.Xopt;
     uHistory  = info.MVopt;
-    hold on
-    plot(xTrackHistory(:, 1),xTrackHistory(:, 2))
-    plot(xTrackHistory(:, 1),xTrackHistory(:, 2), 'ro')
-    plot(1:N+1, xTrackHistory(1:N+1,3))
-    plot(1:N+1, xTrackHistory(1:N+1,6))
+    %hold on
+    %plot(xTrackHistory(:, 1),xTrackHistory(:, 2))
+    %plot(xTrackHistory(:, 1),xTrackHistory(:, 2), 'ro')
+    %plot(1:N+1, xTrackHistory(1:N+1,3))
+    %plot(1:N+1, xTrackHistory(1:N+1,6))
     
     a  = size(uHistory);
     plot(waypoints(:,1), waypoints(:,2), 'go');
+    d = zeros(a(1),31);
     
     %x,  y, theta, xvel, yvel, thetavel,  
     % goal1x, goal1y, goal1theta,  goal1xvel, goal1yvel,  goal1thetavel, goal1dist, goal1angle
@@ -145,7 +142,7 @@ for ct= 1:1e0
 end
 
 % Create MAT file
-%save('MPCmadePath','d')
+save('MPCmadePath','Data')
 
 
 function returnState = mecanumStateFcn(x, u)
@@ -184,7 +181,7 @@ function c = stageCost(stage,x,u, stageParam)
 
     distanceToGoal = posErr;
 
-    posWeight = 300;
+    posWeight = 250;
     angWeight = 10000;
     trackingCost = posWeight * posErr^2 + angWeight * angErr^2;
 

@@ -1,9 +1,9 @@
-import fastStrafe2
+import linearNetwork
 import tensorflow as tf
-model = fastStrafe2.load_model()
-model.export("fastStrafeSavedModel2")
-converter = tf.lite.TFLiteConverter.from_saved_model("fastStrafeSavedModel2")
+model = linearNetwork.load_model()
+model.export("linearNetworkSavedModel")
+converter = tf.lite.TFLiteConverter.from_saved_model("linearNetworkSavedModel")
 tflite_model = converter.convert()
 
-with open('fastStrafe2.tflite', 'wb') as f:
+with open('linearNetwork.tflite', 'wb') as f:
   f.write(tflite_model)

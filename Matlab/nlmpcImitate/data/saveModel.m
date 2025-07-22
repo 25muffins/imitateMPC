@@ -1,2 +1,2 @@
-load("FastStrafeNetwork.mat")
-exportNetworkToTensorFlow(imitateMPCNetwork, 'fastStrafe')
+load("linearNetwork.mat")
+exportNetworkToTensorFlow(imitateMPCNetwork, 'linearNetwork')

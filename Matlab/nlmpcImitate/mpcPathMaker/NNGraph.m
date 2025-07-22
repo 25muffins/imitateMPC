@@ -1,4 +1,4 @@
-function MPCasPathmaker()
+
 % Creates the MAT file 'InputDataFileImLKA.mat' based on the value of
 % 'isRandom'
 
@@ -69,16 +69,10 @@ planner.States(3).Max =  pi;
 
 
 clf
-rng(0)
-%clf
-% initialize
-d = zeros(1,31); %rows will automatically fill up
 for ct= 1:1e0
     ct
-    %goal1 = [144*rand-72, 144*rand-72, 2*pi*rand - pi,  0, 0, 0]
-    %goal2 = [144*rand-72, 144*rand-72, 2*pi*rand - pi, 0, 0, 0]
-    goal1 = [37.909839648058835,  47.008733717186161, 0.461585340534781,0,0 0]
-    goal2 = [43.354909003121207, -38.450659188434670, 2.717280830362103, 0, 0, 0]
+    goal1 = [100,  -40, 0.46,0,0 0];
+    goal2 = [20, 30, 2.71, 0, 0, 0];
     waypoints =  [goal1;  goal2];
     x = [0; 0; 0; 0; 0; 0];
     u = zeros(nu,1);
@@ -120,27 +114,30 @@ for ct= 1:1e0
     % optimal u  (x4), past u (x4), goalswitch 
     %total size = 31
     
+    divisors =  [72, 72, 3.1415, 30, 30, 1,...
+        72, 72, 3.1415,...
+        72, 72, 3.1415,...
+        1];
+    x0 = [0;0;0;0;0;0]
     goalswitch = 0;
-    for  i = 1:a(1)
-        currentPos = xTrackHistory(i,:);
-    
-        dist1 = sqrt((currentPos(1)-goal1(1))^2 +  (currentPos(2)-goal2(2))^2);
-        dist2 = sqrt((currentPos(1)-goal2(1))^2 +  (currentPos(2)-goal2(2))^2);
-        angle1 =  atan2(goal1(2)  -  currentPos(2), goal1(1) - currentPos(1));
-        angle2 =  atan2(goal2(2)  -  currentPos(2), goal2(1) - currentPos(1));
+    for  i = 1:6
+        plot(x0(1), x0(2),'k>')
+        dist1 = sqrt((x0(1)-goal1(1))^2 +  (x0(2)-goal2(2))^2);
+        dist2 = sqrt((x0(1)-goal2(1))^2 +  (x0(2)-goal2(2))^2);
+        angle1 =  atan2(goal1(2)  -  x0(2), goal1(1) - x0(1));
+        angle2 =  atan2(goal2(2)  -  x0(2), goal2(1) - x0(1));
+        if(dist1 <= 6 && goalswitch~=1)
+            goalswitch  = 1;
+        end
+
+        inputData = [x0(1:6)', goal1(1:3), goal2(1:3), goalswitch]
+
+        inputData = inputData ./ divisors;
+        Ypredict = predict(imitateMPCNetwork, inputData);
+        u = Ypredict';
+        u = u*64.2455;
+        x0 = mecanumStateFcn(x0, u);
         
-        g1 = [goal1,  dist1, angle1];
-        g2 = [goal2,  dist2, angle2];
-        optimalU  = uHistory(i,:);
-    
-        if(i==1) lastU =  [0,0,0,0];
-        else  lastU =  uHistory(i-1,:);
-        end
-    
-        if(i >= (a(1)/2))
-            goalswitch = 1;
-        end
-        d((ct-1) * a(1) + i,:) =  [currentPos(:)',  g1(:)', g2(:)', optimalU(:)', lastU(:)', goalswitch];
     end
 end
 
@@ -210,5 +207,4 @@ function c = terminalCost(stage, x,u, stageParam)
     
     % Combine terminal costs
     c = positionCost + orientationCost + velocityCost + angularVelCost;
-end
 end

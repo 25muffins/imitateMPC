@@ -1,32 +1,33 @@
 %imitateMPC Matlab example code
 
 
-r =  load('FIXEDrelativeDistAngle1.mat');
-r2 =  load('FIXEDrelativeDistAngle2.mat');
+
 f = load('fasterStrafing.mat');
 f2 = load('fasterStrafing2.mat');
 f3 = load('fasterStrafing3.mat');
-xy =  load('XY1.mat');
-l  =  load('linear1.mat');
-lNoU  =  load('linearNoU01.mat');
+
+mmp = load('MPCmadePath.mat');
 
 
-DataRelative = r.Data(~all(r.Data==0, 2),:);
-DataRelative2 = r2.Data(~all(r2.Data==0, 2),:);
 DataF = f.Data(~all(f.Data==0, 2), :);
 DataF2 = f2.Data(~all(f2.Data==0, 2), :);
 DataF3 = f3.Data(~all(f3.Data==0, 2), :);
-DataXY = xy.Data(~all(xy.Data==0,2), :);
-DataLinear  = l.Data(~all(l.Data==0,2),:);
-DataLinearNoU  = lNoU.Data(~all(lNoU.Data==0,2),:);
+
 
 %[sys,Vx] = createModelForMPCImLKA;
 %[mpcobj,initialState] = createMPCobjImLKA(sys);
-data = [DataLinearNoU];%[Data1; Data2; Data3];  %38k
+data = [mmp.d];%[Data1; Data2; Data3];  %38k
 size(data)
 
 %normalize
-divisors =  [144, 144, 3.1415, 64.2455, 64.2455, 64.2455, 64.2455, 144, 3.1415, 3.1415, 144, 3.1415, 3.1415, 64.2455, 64.2455, 64.2455, 64.2455, 1];
+%divisors =  [144, 144, 3.1415, 64.2455, 64.2455, 64.2455, 64.2455, 144, 3.1415, 3.1415, 144, 3.1415, 3.1415, 64.2455, 64.2455, 64.2455, 64.2455, 1];
+divisors =  [72, 72, 3.1415, 30, 30, 1,...  %current (1-6)
+    72, 72, 3.1415, 30, 30, 1, 144, 3.1415,...  %goal1 (7-14)
+    72, 72, 3.1415, 30, 30, 1, 144, 3.1415,...  %goal2 (15-22)
+    64.2455, 64.2455, 64.2455,  64.2455,... %optimalU (23-26)
+    64.2455, 64.2455, 64.2455, 64.2455... %pastU (27-30)
+    1]; %goalSwitch (31)
+
 data = data./divisors;
 
 totalRows = size(data,1);
@@ -52,19 +53,25 @@ shuffleIdx = randperm(numTrainDataRows);
 shuffledTrainData = trainData(shuffleIdx,:);
 
 %TODO // FIX
-numObs = 8; % current x  y theta, goal1x, goal1y, goal2x, goal2y, u0 (x4)
+numObs = 13; % current x  y theta, goal1x, goal1y, goal2x, goal2y, u0 (x4)
 numActions = 4;
 
 %TODO // FIX
-trainInput = shuffledTrainData(:,[1:3 8:9 11:12 18]);
-trainOutput = shuffledTrainData(:,14:17);
-validationInput = validationData(:,[1:3 8:9 11:12 18]);
-validationOutput = validationData(:,14:17);
+%trainInput = shuffledTrainData(:,[1:3 8:9 11:12 18]);
+%trainOutput = shuffledTrainData(:,14:17);
+%validationInput = validationData(:,[1:3 8:9 11:12 18]);
+%validationOutput = validationData(:,14:17);
+trainInput = shuffledTrainData(:,[1:6 7:9 15:17 31]);
+trainOutput = shuffledTrainData(:,23:26);
+validationInput = validationData(:,[1:6 7:9 15:17 31]);
+validationOutput = validationData(:,23:26);
 
 validationCellArray = {validationInput,validationOutput};
 
-testDataInput = testData(:,[1:3 8:9 11:12 18]);
-testDataOutput = testData(:,14:17);
+%testDataInput = testData(:,[1:3 8:9 11:12 18]);
+%testDataOutput = testData(:,14:17);
+testDataInput = testData(:,[1:6 7:9 15:17 31]);
+testDataOutput = testData(:,23:26);
 
 rng(0);
 imitateMPCLayers = [
@@ -100,7 +107,7 @@ options = trainingOptions("adam", ...
     MaxEpochs=200, ...
     MiniBatchSize=512, ...
     ValidationData=validationCellArray, ...
-    InitialLearnRate=1e-3, ...
+    InitialLearnRate=1e-4, ...
     GradientThresholdMethod="absolute-value", ...
     ExecutionEnvironment="cpu", ...
     GradientThreshold=10, ...
@@ -113,4 +120,4 @@ imitateMPCNetwork = trainnet( ...
     "mae", ...
     options);
 
-save("linearNetwork", "imitateMPCNetwork", "testDataInput","testDataOutput")
+save("PathGenNetwork", "imitateMPCNetwork", "testDataInput","testDataOutput")
