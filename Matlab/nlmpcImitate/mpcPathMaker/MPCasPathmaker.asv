@@ -1,4 +1,4 @@
-load("twentyNetwork.mat")
+function MPCasPathmaker()
 % Creates the MAT file 'InputDataFileImLKA.mat' based on the value of
 % 'isRandom'
 
@@ -13,7 +13,6 @@ load("twentyNetwork.mat")
 
 
 % use a different seed such as rng('shuffle') to create differing data
-rng(1)
 
 % Generate MPC object.
 Ts = 1;         % Sampling time
@@ -24,7 +23,6 @@ wheelCircumference = 4.09 * pi;
 nu = 4;           % [fr, fl, br, bl]
 nx = 6;           % [x; y; theta; vx, vy, omega]
 ny = 3;
-N=20;
 
 %goal1 = [-72, -50, 0.5,  0, 0, 0];
 %goal2 = [-30, 72, 2, 0, 0, 0];
@@ -35,7 +33,7 @@ N=20;
 %if mod(approximateN,  2) ==  1
 %    approximateN = approximateN+1;
 %end
-N = 28;
+N = 32;
 
 planner = nlmpcMultistage(N, nx, nu);
 planner.Ts = Ts;
@@ -69,10 +67,14 @@ planner.States(3).Max =  pi;
 
 
 clf
-for ct= 1:1e0
+rng(40)
+%clf
+% initialize
+d = zeros(1,34); %rows will automatically fill up
+for ct= 1:5e2
     ct
-    goal1 = [-50,  60, 0.46,0,0 0];
-    goal2 = [60, -10, 2.71, 0, 0, 0];
+    goal1 = [144*rand-72, 144*rand-72, 2*pi*rand - pi,  0, 0, 0]
+    goal2 = [144*rand-72, 144*rand-72, 2*pi*rand - pi, 0, 0, 0]
     waypoints =  [goal1;  goal2];
     x = [0; 0; 0; 0; 0; 0];
     u = zeros(nu,1);
@@ -114,43 +116,40 @@ for ct= 1:1e0
     % goal1x, goal1y, goal1theta,  goal1xvel, goal1yvel,  goal1thetavel, goal1dist, goal1angle
     % goal2x, goal2y, goal2theta,  goal2xvel, goal2yvel,  goal2thetavel, goal2dist, goal2angle
     % optimal u  (x4), past u (x4), goalswitch 
-    %total size = 31
+    % nextxVel nextyVel, nextthetaVel
+    %total size = 34
     
-    divisors =  [72, 72, 3.1415, 30, 30, 5,...
-        72, 72, 3.1415,...
-        72, 72, 3.1415,...
-        1];
-    x0 = [0;0;0;0;0;0];
     goalswitch = 0;
-    testData = zeros(1,10);
-    for  i = 1:15
-        plot(x0(1), x0(2),'k>')
+    for  i = 1:a(1)
+        currentPos = xTrackHistory(i,:);
+    
+        dist1 = sqrt((currentPos(1)-goal1(1))^2 +  (currentPos(2)-goal1(2))^2);
+        dist2 = sqrt((currentPos(1)-goal2(1))^2 +  (currentPos(2)-goal2(2))^2);
+        angle1 =  atan2(goal1(2)  -  currentPos(2), goal1(1) - currentPos(1));
+        angle2 =  atan2(goal2(2)  -  currentPos(2), goal2(1) - currentPos(1));
         
-        dist1 = sqrt((x0(1)-goal1(1))^2 +  (x0(2)-goal1(2))^2);
-        dist2 = sqrt((x0(1)-goal2(1))^2 +  (x0(2)-goal2(2))^2);
-        angle1 =  atan2(goal1(2)  -  x0(2), goal1(1) - x0(1));
-        angle2 =  atan2(goal2(2)  -  x0(2), goal2(1) - x0(1));
-        if(dist1 <= 1 && goalswitch~=1)
-            goalswitch  = 1;
+        g1 = [goal1,  dist1, angle1];
+        g2 = [goal2,  dist2, angle2];
+        optimalU  = uHistory(i,:);
+    
+        if(i==1) lastU =  [0,0,0,0];
+        else  lastU =  uHistory(i-1,:);
+        end
+    
+        if(i >= (a(1)/2 + 1))
+            goalswitch = 1;
         end
 
-        inputData = [x0(1:6)', goal1(1:3), goal2(1:3), goalswitch];
-        %inputData = [x0(1:6)', dist1, angle1, goal1(3), dist2, angle2, goal2(3), goalswitch];
-
-        inputData = inputData ./ divisors;
-        Ypredict = predict(imitateMPCNetwork, inputData);
-        u = Ypredict';
-        u = [u(1) * 30, u(2) * 30, u(3) * 5];
-        %u = u*64.2455;
-        x0 = velStateFcn(x0, u);
-        %x0 = mecanumStateFcn(x0, u);
-        testData(i,:) =  [x0(:)', u(:)', goalswitch];
+        if(i==a(1)) nextVels = [0,0,0];
+        else nextVels = xTrackHistory(i+1, 4:6);
+        end
         
+        d((ct-1) * a(1) + i,:) =  [currentPos(:)',  g1(:)', g2(:)', optimalU(:)', lastU(:)', goalswitch, nextVels];
     end
 end
 
 % Create MAT file
-save('testData','testData')
+save('realthistime','d')
 
 
 function returnState = mecanumStateFcn(x, u)
@@ -178,17 +177,6 @@ function returnState = mecanumStateFcn(x, u)
     xnext(3) = wrapToPi(xnext(3));
     returnState  = [xnext; xvel];
 
-end
-function returnState = velStateFcn(x, u)
-
-    xvel = [u(1);
-             u(2);
-             u(3)];
-    xnext = [x(1) + xvel(1);
-             x(2) + xvel(2);
-             x(3) +  xvel(3)];
-    xnext(3) = wrapToPi(xnext(3));
-    returnState  = [xnext; xvel];
 end
 function c = stageCost(stage,x,u, stageParam)
     goal = stageParam;
@@ -225,4 +213,5 @@ function c = terminalCost(stage, x,u, stageParam)
     
     % Combine terminal costs
     c = 2*(positionCost + orientationCost + velocityCost + angularVelCost);
+end
 end

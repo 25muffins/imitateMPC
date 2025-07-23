@@ -6,8 +6,12 @@
 %f2 = load('fasterStrafing2.mat');
 %f3 = load('fasterStrafing3.mat');
 
-mmp = load('MPCmadePath.mat');
-wvels = load('MPCmadePathWVels.mat');
+%mmp = load('MPCmadePath.mat');
+%wvels = load('MPCmadePathWVels.mat');
+%wvels2 = load('MPCmadePathWVels2.mat');
+%da = load('MPCDistAngle1.mat');
+fr = load('twentyN.mat');
+fr2 = load('twentyN2.mat');
 
 
 %DataF = f.Data(~all(f.Data==0, 2), :);
@@ -17,7 +21,7 @@ wvels = load('MPCmadePathWVels.mat');
 
 %[sys,Vx] = createModelForMPCImLKA;
 %[mpcobj,initialState] = createMPCobjImLKA(sys);
-data = [wvels.d];%[Data1; Data2; Data3];  %38k
+data = [fr.d; fr2.d];
 size(data)
 
 %normalize
@@ -56,30 +60,31 @@ shuffledTrainData = trainData(shuffleIdx,:);
 
 %TODO // FIX
 numObs = 13;
-numActions = 3;
+numActions = 4;
 
 %TODO // FIX
 %trainInput = shuffledTrainData(:,[1:3 8:9 11:12 18]);
 %trainOutput = shuffledTrainData(:,14:17);
 %validationInput = validationData(:,[1:3 8:9 11:12 18]);
 %validationOutput = validationData(:,14:17);
-trainInput = shuffledTrainData(:,[1:6 7:9 15:17 31]);
-trainOutput = shuffledTrainData(:,32:34);
-validationInput = validationData(:,[1:6 7:9 15:17 31]);
-validationOutput = validationData(:,32:34);
+trainInput = shuffledTrainData(:,[1:6 13:14 9 21:22 17 31]);
+trainOutput = shuffledTrainData(:,23:26);
+validationInput = validationData(:,[1:6 13:14 9 21:22 17 31]);
+validationOutput = validationData(:,23:26);
 
 validationCellArray = {validationInput,validationOutput};
 
 %testDataInput = testData(:,[1:3 8:9 11:12 18]);
 %testDataOutput = testData(:,14:17);
-testDataInput = testData(:,[1:6 7:9 15:17 31]);
-testDataOutput = testData(:,32:34);
+testDataInput = testData(:,[1:6 13:14 9 21:22 17 31]);
+testDataOutput = testData(:,23:26);
 
 rng(0);
 imitateMPCLayers = [
     featureInputLayer(numObs) 
     fullyConnectedLayer(450)
     reluLayer
+    dropoutLayer(0.2)
     fullyConnectedLayer(400)
     reluLayer
     fullyConnectedLayer(300)
@@ -101,15 +106,15 @@ options = trainingOptions("adam", ...
     'L2Regularization', 1e-4,...
     LearnRateSchedule= 'piecewise',...
     LearnRateDropFactor= 0.5,...
-    LearnRateDropPeriod= 100,...
+    LearnRateDropPeriod= 50,...
     Verbose=true, ...
     Plots="training-progress", ...
     Metrics="mae", ...
     Shuffle="every-epoch", ...
-    MaxEpochs=200, ...
-    MiniBatchSize=512, ...
+    MaxEpochs=100, ...
+    MiniBatchSize=1000, ...
     ValidationData=validationCellArray, ...
-    InitialLearnRate=1e-4, ...
+    InitialLearnRate=1e-3, ...
     GradientThresholdMethod="absolute-value", ...
     ExecutionEnvironment="cpu", ...
     GradientThreshold=10, ...
@@ -122,4 +127,4 @@ imitateMPCNetwork = trainnet( ...
     "mae", ...
     options);
 
-save("PathGenNetwork", "imitateMPCNetwork", "testDataInput","testDataOutput")
+save("uNetwork", "imitateMPCNetwork", "testDataInput","testDataOutput")

@@ -13,7 +13,6 @@ function MPCasPathmaker()
 
 
 % use a different seed such as rng('shuffle') to create differing data
-rng(1)
 
 % Generate MPC object.
 Ts = 1;         % Sampling time
@@ -34,7 +33,7 @@ ny = 3;
 %if mod(approximateN,  2) ==  1
 %    approximateN = approximateN+1;
 %end
-N = 32;
+N = 18;
 
 planner = nlmpcMultistage(N, nx, nu);
 planner.Ts = Ts;
@@ -68,11 +67,11 @@ planner.States(3).Max =  pi;
 
 
 clf
-rng(0)
+rng(40)
 %clf
 % initialize
 d = zeros(1,34); %rows will automatically fill up
-for ct= 1:5e2
+for ct= 1:5e0
     ct
     goal1 = [144*rand-72, 144*rand-72, 2*pi*rand - pi,  0, 0, 0]
     goal2 = [144*rand-72, 144*rand-72, 2*pi*rand - pi, 0, 0, 0]
@@ -124,7 +123,7 @@ for ct= 1:5e2
     for  i = 1:a(1)
         currentPos = xTrackHistory(i,:);
     
-        dist1 = sqrt((currentPos(1)-goal1(1))^2 +  (currentPos(2)-goal2(2))^2);
+        dist1 = sqrt((currentPos(1)-goal1(1))^2 +  (currentPos(2)-goal1(2))^2);
         dist2 = sqrt((currentPos(1)-goal2(1))^2 +  (currentPos(2)-goal2(2))^2);
         angle1 =  atan2(goal1(2)  -  currentPos(2), goal1(1) - currentPos(1));
         angle2 =  atan2(goal2(2)  -  currentPos(2), goal2(1) - currentPos(1));
@@ -150,7 +149,7 @@ for ct= 1:5e2
 end
 
 % Create MAT file
-save('MPCmadePathWVels','d')
+save('v1','d')
 
 
 function returnState = mecanumStateFcn(x, u)
@@ -167,8 +166,8 @@ function returnState = mecanumStateFcn(x, u)
     x(3) = wrapToPi(x(3));
     theta = x(3) + second(3);
     theta = wrapToPi(theta);
-    xvalue = (second(1) * sin(theta)) +  (second(2) * cos(theta));
-    yvalue = (second(1) * cos(theta)) +  (second(2) * sin(theta));
+    xvalue = (second(1) * cos(theta)) +  (second(2) * sin(theta));
+    yvalue = (second(1) * sin(theta)) +  (second(2) * cos(theta));
     xvel = [xvalue;
              yvalue;
              second(3)];
@@ -189,7 +188,7 @@ function c = stageCost(stage,x,u, stageParam)
 
     distanceToGoal = posErr;
 
-    posWeight = 300;
+    posWeight = 100;
     angWeight = 100000;
     trackingCost = posWeight * posErr^2 + angWeight * angErr^2;
 
@@ -207,7 +206,7 @@ function c = terminalCost(stage, x,u, stageParam)
     velErr = norm(x(4:5)) - norm(goal(4:5)); 
     angVelErr = abs(x(6)  - goal(6)); 
     
-    positionCost = 300 * posErr^2;      
+    positionCost = 800 * posErr^2;      
     orientationCost = 30000 * angErr^2;    
     velocityCost = 120 * velErr^2;       
     angularVelCost = 120 * angVelErr^2; 

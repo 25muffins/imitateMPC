@@ -1,4 +1,4 @@
-load("PathGenNetwork.mat")
+load("twentyNetwork.mat")
 % Creates the MAT file 'InputDataFileImLKA.mat' based on the value of
 % 'isRandom'
 
@@ -71,8 +71,8 @@ planner.States(3).Max =  pi;
 clf
 for ct= 1:1e0
     ct
-    goal1 = [70,  40, 0.46,0,0 0];
-    goal2 = [20, -10, 2.71, 0, 0, 0];
+    goal1 = [-50,  60, 0.46,0,0 0];
+    goal2 = [60, -10, 2.71, 0, 0, 0];
     waypoints =  [goal1;  goal2];
     x = [0; 0; 0; 0; 0; 0];
     u = zeros(nu,1);
@@ -83,9 +83,11 @@ for ct= 1:1e0
     midGoal = waypoints(1,:)';
     finalGoal = waypoints(2,:)';
     for i = 2:N
-    
-        planner.Stages(i).CostFcn = @stageCost;
-    
+        if i == (N/2+1)
+            planner.Stages(i).CostFcn = @terminalCost;
+        else
+            planner.Stages(i).CostFcn = @stageCost;
+        end
         planner.Stages(i).ParameterLength = 6;
     end
     simData = getSimulationData(planner , 'TerminalState');
@@ -117,22 +119,23 @@ for ct= 1:1e0
     divisors =  [72, 72, 3.1415, 30, 30, 5,...
         72, 72, 3.1415,...
         72, 72, 3.1415,...
-        5];
+        1];
     x0 = [0;0;0;0;0;0];
     goalswitch = 0;
     testData = zeros(1,10);
-    for  i = 1:50
+    for  i = 1:15
         plot(x0(1), x0(2),'k>')
         
         dist1 = sqrt((x0(1)-goal1(1))^2 +  (x0(2)-goal1(2))^2);
         dist2 = sqrt((x0(1)-goal2(1))^2 +  (x0(2)-goal2(2))^2);
         angle1 =  atan2(goal1(2)  -  x0(2), goal1(1) - x0(1));
         angle2 =  atan2(goal2(2)  -  x0(2), goal2(1) - x0(1));
-        if(dist1 <= 2 && goalswitch~=1)
+        if(dist1 <= 1 && goalswitch~=1)
             goalswitch  = 1;
         end
 
         inputData = [x0(1:6)', goal1(1:3), goal2(1:3), goalswitch];
+        %inputData = [x0(1:6)', dist1, angle1, goal1(3), dist2, angle2, goal2(3), goalswitch];
 
         inputData = inputData ./ divisors;
         Ypredict = predict(imitateMPCNetwork, inputData);
@@ -140,6 +143,7 @@ for ct= 1:1e0
         u = [u(1) * 30, u(2) * 30, u(3) * 5];
         %u = u*64.2455;
         x0 = velStateFcn(x0, u);
+        %x0 = mecanumStateFcn(x0, u);
         testData(i,:) =  [x0(:)', u(:)', goalswitch];
         
     end
@@ -163,8 +167,8 @@ function returnState = mecanumStateFcn(x, u)
     x(3) = wrapToPi(x(3));
     theta = x(3) + second(3);
     theta = wrapToPi(theta);
-    xvalue = (second(1) * sin(theta)) +  (second(2) * cos(theta));
-    yvalue = (second(1) * cos(theta)) +  (second(2) * sin(theta));
+    xvalue = (second(1) * cos(theta)) +  (second(2) * sin(theta));
+    yvalue = (second(1) * sin(theta)) +  (second(2) * cos(theta));
     xvel = [xvalue;
              yvalue;
              second(3)];
@@ -185,7 +189,6 @@ function returnState = velStateFcn(x, u)
              x(3) +  xvel(3)];
     xnext(3) = wrapToPi(xnext(3));
     returnState  = [xnext; xvel];
-
 end
 function c = stageCost(stage,x,u, stageParam)
     goal = stageParam;
@@ -198,7 +201,7 @@ function c = stageCost(stage,x,u, stageParam)
     distanceToGoal = posErr;
 
     posWeight = 300;
-    angWeight = 10000;
+    angWeight = 100000;
     trackingCost = posWeight * posErr^2 + angWeight * angErr^2;
 
     velCost = 120;
@@ -210,17 +213,16 @@ function c = stageCost(stage,x,u, stageParam)
 end
 function c = terminalCost(stage, x,u, stageParam)
     goal = stageParam;
-
     posErr = norm(x(1:2) - goal(1:2));
     angErr = abs(wrapToPi(x(3) - goal(3)));
-    velErr = norm(x(4:5));
-    angVelErr = abs(x(6) -  goal(6));
+    velErr = norm(x(4:5)) - norm(goal(4:5)); 
+    angVelErr = abs(x(6)  - goal(6)); 
     
-    positionCost = 100 * posErr^2;      
-    orientationCost = 20 * angErr^2;    
-    velocityCost = 20 * velErr^2;       
-    angularVelCost = 20 * angVelErr^2; 
+    positionCost = 300 * posErr^2;      
+    orientationCost = 30000 * angErr^2;    
+    velocityCost = 120 * velErr^2;       
+    angularVelCost = 120 * angVelErr^2; 
     
     % Combine terminal costs
-    c = positionCost + orientationCost + velocityCost + angularVelCost;
+    c = 2*(positionCost + orientationCost + velocityCost + angularVelCost);
 end
