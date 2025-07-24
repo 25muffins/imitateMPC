@@ -25,6 +25,7 @@ import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
 import org.firstinspires.ftc.teamcode.util.DashboardUtil;
 import org.tensorflow.lite.Interpreter;
 
@@ -62,7 +63,7 @@ public class MPCPathGen extends LinearOpMode {
     public static float[] goal1 = {10, -10, 2};
     public static float[] goal2 = {20,-20, 2};
     public static float[] startPos = {0,0,0};
-    public  static Pose2d fc = new Pose2d(0,  100, 0);
+    public  static double[] fc = new double[]{0,  1, 0};
 
 
     @Override
@@ -92,7 +93,7 @@ public class MPCPathGen extends LinearOpMode {
             throw new RuntimeException(e);
         }
         float[] inputs = {0,0,0, 0, 0, 0, 0, 0, 0, 0};
-        float[][] outputs = {{0,0,0,0}};
+        float[][] outputs = {{0,0,0}};
         float goalSwitch = 0;
 
         Pose2d pose;
@@ -166,10 +167,7 @@ public class MPCPathGen extends LinearOpMode {
             double totalTime = timer.milliseconds() - startTime;
 
             // [fr, fl, br, bl]
-            //fr.setPower(speed*outputs[0][0]);
-//            fl.setPower(speed*outputs[0][1]);
-//            br.setPower(speed*outputs[0][2]);
-//            bl.setPower(speed*outputs[0][3]);
+
 
 //            fr.setVelocity(velo*outputs[0][0]);
 //            fl.setVelocity(velo*outputs[0][1]);
@@ -190,11 +188,18 @@ public class MPCPathGen extends LinearOpMode {
             telemetry.addData("imu", getHeading());
             telemetry.addData("goalswtich", goalSwitch);
             telemetry.addData("voltage", voltageSensor.getVoltage());
-            Pose2d fcTest = fieldCentric(fc.getX(), fc.getY(), fc.getHeading(), voltageSensor.getVoltage(), getHeading());
+            Pose2d fcTest = fieldCentric(fc[0], fc[1], fc[2], voltageSensor.getVoltage(), getHeading());
             List<Double> dpTest = getDrivePower(fcTest);
             telemetry.addData("fcTest", Arrays.toString(new double[]{fcTest.getX(), fcTest.getY(), fcTest.getHeading()}));
             telemetry.addData("dpTest", Arrays.toString(new double[]{dpTest.get(0), dpTest.get(1), dpTest.get(2), dpTest.get(3)}));
-
+            bl.setPower(speed*dpTest.get(0));
+            fl.setPower(speed*dpTest.get(1));
+            fr.setPower(speed*dpTest.get(2));
+            br.setPower(speed*dpTest.get(3));
+//            fl.setPower(speed*dpTest.get(0));
+//            bl.setPower(speed*dpTest.get(1));
+//            br.setPower(speed*dpTest.get(2));
+//            fr.setPower(speed*dpTest.get(3));
 
             telemetry.update();
             localizer.update();
@@ -205,6 +210,9 @@ public class MPCPathGen extends LinearOpMode {
     }
     float[] convertCoordinates(float x, float y){
         return new float[] {y, x};
+    }
+    float[] convertBack(float[] outputs){
+        return new float[] {outputs[1], outputs[0], outputs[2]};
     }
     private MappedByteBuffer loadModelFile() throws IOException {
         String modelPath = "MPCPathGen.tflite";
@@ -248,7 +256,7 @@ public class MPCPathGen extends LinearOpMode {
         float voltageComp = 1;//(float) (12.0 / voltage);
         double[] p = {x * voltageComp, y * voltageComp, h * voltageComp};
         Vector2d vec = new Vector2d(p[0], p[1]).rotated(-currHeading);
-        return new Pose2d(vec.getX(), vec.getY(), -p[2]);
+        return new Pose2d(vec.getX(), -vec.getY(), -p[2]); //clockwise
     }
 
     private List<Double> getDrivePower(Pose2d pose2d) {
