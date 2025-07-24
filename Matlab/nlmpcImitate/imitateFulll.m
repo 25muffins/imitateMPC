@@ -10,8 +10,8 @@
 %wvels = load('MPCmadePathWVels.mat');
 %wvels2 = load('MPCmadePathWVels2.mat');
 %da = load('MPCDistAngle1.mat');
-fr = load('twentyN.mat');
-fr2 = load('twentyN2.mat');
+v6 = load('v6.mat');
+v6v2 = load('v6v2.mat');
 
 
 %DataF = f.Data(~all(f.Data==0, 2), :);
@@ -21,18 +21,18 @@ fr2 = load('twentyN2.mat');
 
 %[sys,Vx] = createModelForMPCImLKA;
 %[mpcobj,initialState] = createMPCobjImLKA(sys);
-data = [fr.d; fr2.d];
+data = [v6.d; v6v2.d];
 size(data)
 
 %normalize
 %divisors =  [144, 144, 3.1415, 64.2455, 64.2455, 64.2455, 64.2455, 144, 3.1415, 3.1415, 144, 3.1415, 3.1415, 64.2455, 64.2455, 64.2455, 64.2455, 1];
-divisors =  [72, 72, 3.1415, 30, 30, 5,...  %current (1-6)
-    72, 72, 3.1415, 30, 30, 5, 144, 3.1415,...  %goal1 (7-14)
-    72, 72, 3.1415, 30, 30, 5, 144, 3.1415,...  %goal2 (15-22)
-    64.2455, 64.2455, 64.2455,  64.2455,... %optimalU (23-26)
-    64.2455, 64.2455, 64.2455, 64.2455... %pastU (27-30)
+divisors =  [72, 72, 3.1415, 30, 30, 3.1415,...  %current (1-6)
+    72, 72, 3.1415, 30, 30, 3.1415, 144, 3.1415,...  %goal1 (7-14)
+    72, 72, 3.1415, 30, 30, 3.1415, 144, 3.1415,...  %goal2 (15-22)
+    30, 30, 3.1415,... %optimalU (23-26)
+    30, 30, 3.1415... %pastU (27-30)
     1,...%goalSwitch (31)
-    30, 30, 5];  %vels (32-34)
+    30, 30, 3.1415];  %vels (32-34)
 
 data = data./divisors;
 
@@ -59,32 +59,32 @@ shuffleIdx = randperm(numTrainDataRows);
 shuffledTrainData = trainData(shuffleIdx,:);
 
 %TODO // FIX
-numObs = 13;
-numActions = 4;
+numObs = 10;
+numActions = 3;
 
 %TODO // FIX
 %trainInput = shuffledTrainData(:,[1:3 8:9 11:12 18]);
 %trainOutput = shuffledTrainData(:,14:17);
 %validationInput = validationData(:,[1:3 8:9 11:12 18]);
 %validationOutput = validationData(:,14:17);
-trainInput = shuffledTrainData(:,[1:6 13:14 9 21:22 17 31]);
-trainOutput = shuffledTrainData(:,23:26);
-validationInput = validationData(:,[1:6 13:14 9 21:22 17 31]);
-validationOutput = validationData(:,23:26);
+trainInput = shuffledTrainData(:,[1:3 7:9 15:17 29]);
+trainOutput = shuffledTrainData(:,30:32);
+validationInput = validationData(:,[1:3 7:9 15:17 29]);
+validationOutput = validationData(:,30:32);
 
 validationCellArray = {validationInput,validationOutput};
 
 %testDataInput = testData(:,[1:3 8:9 11:12 18]);
 %testDataOutput = testData(:,14:17);
-testDataInput = testData(:,[1:6 13:14 9 21:22 17 31]);
-testDataOutput = testData(:,23:26);
+testDataInput = testData(:,[1:6 7:9 15:17 29]);
+testDataOutput = testData(:,30:32);
 
 rng(0);
 imitateMPCLayers = [
     featureInputLayer(numObs) 
     fullyConnectedLayer(450)
     reluLayer
-    dropoutLayer(0.2)
+    %dropoutLayer(0.2)
     fullyConnectedLayer(400)
     reluLayer
     fullyConnectedLayer(300)
@@ -112,7 +112,7 @@ options = trainingOptions("adam", ...
     Metrics="mae", ...
     Shuffle="every-epoch", ...
     MaxEpochs=100, ...
-    MiniBatchSize=1000, ...
+    MiniBatchSize=512, ...
     ValidationData=validationCellArray, ...
     InitialLearnRate=1e-3, ...
     GradientThresholdMethod="absolute-value", ...
@@ -127,4 +127,4 @@ imitateMPCNetwork = trainnet( ...
     "mae", ...
     options);
 
-save("uNetwork", "imitateMPCNetwork", "testDataInput","testDataOutput")
+save("v6Network", "imitateMPCNetwork", "testDataInput","testDataOutput")

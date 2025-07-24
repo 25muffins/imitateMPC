@@ -67,11 +67,11 @@ planner.States(3).Max =  pi;
 
 
 clf
-rng(40)
+rng(50)
 %clf
 % initialize
 d = zeros(1,34); %rows will automatically fill up
-for ct= 1:5e0
+for ct= 1:2e0
     ct
     goal1 = [144*rand-72, 144*rand-72, 2*pi*rand - pi,  0, 0, 0]
     goal2 = [144*rand-72, 144*rand-72, 2*pi*rand - pi, 0, 0, 0]
@@ -136,7 +136,7 @@ for ct= 1:5e0
         else  lastU =  uHistory(i-1,:);
         end
     
-        if(i >= (a(1)/2 + 1))
+        if(i >= (a(1)/2))
             goalswitch = 1;
         end
 
@@ -149,7 +149,7 @@ for ct= 1:5e0
 end
 
 % Create MAT file
-save('v1','d')
+save('v3','d')
 
 
 function returnState = mecanumStateFcn(x, u)
@@ -189,11 +189,11 @@ function c = stageCost(stage,x,u, stageParam)
     distanceToGoal = posErr;
 
     posWeight = 100;
-    angWeight = 100000;
+    angWeight = 8000;
     trackingCost = posWeight * posErr^2 + angWeight * angErr^2;
 
     velCost = 120;
-    velocityCost = velCost * velErr^2 + velCost * angVelErr^2;
+    velocityCost = velCost * velErr^2 + 3200 * angVelErr^2;
     controlCost = 0.1 * sum(u.^2);
     
     % Combine costs
@@ -207,7 +207,7 @@ function c = terminalCost(stage, x,u, stageParam)
     angVelErr = abs(x(6)  - goal(6)); 
     
     positionCost = 800 * posErr^2;      
-    orientationCost = 30000 * angErr^2;    
+    orientationCost = 100000 * angErr^2;    
     velocityCost = 120 * velErr^2;       
     angularVelCost = 120 * angVelErr^2; 
     

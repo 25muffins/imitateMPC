@@ -1,4 +1,4 @@
-load("twentyNetwork.mat")
+load("v6Network.mat")
 % Creates the MAT file 'InputDataFileImLKA.mat' based on the value of
 % 'isRandom'
 
@@ -21,7 +21,7 @@ rb = 7.5; % track radius
 maxRev = 300 / 60; %per second
 wheelCircumference = 4.09 * pi;
 
-nu = 4;           % [fr, fl, br, bl]
+nu = 3;           % [fr, fl, br, bl]
 nx = 6;           % [x; y; theta; vx, vy, omega]
 ny = 3;
 N=20;
@@ -71,15 +71,17 @@ planner.States(3).Max =  pi;
 clf
 for ct= 1:1e0
     ct
-    goal1 = [-50,  60, 0.46,0,0 0];
-    goal2 = [60, -10, 2.71, 0, 0, 0];
+    goal1 = [-72,  60, -1.7,0,0 0];
+    goal2 = [60, -10, 3, 0, 0, 0];
     waypoints =  [goal1;  goal2];
     x = [0; 0; 0; 0; 0; 0];
     u = zeros(nu,1);
-    for i = 1:4
-        planner.MV(i).Min = -maxRev * wheelCircumference;
-        planner.MV(i).Max = maxRev * wheelCircumference;
-    end
+    planner.MV(1).Min = -50;
+    planner.MV(1).Max = 50;
+    planner.MV(2).Min = -50;
+    planner.MV(2).Max = 50;
+    planner.MV(3).Min = -3.1415;
+    planner.MV(3).Max = 3.1415;
     midGoal = waypoints(1,:)';
     finalGoal = waypoints(2,:)';
     for i = 2:N
@@ -116,31 +118,33 @@ for ct= 1:1e0
     % optimal u  (x4), past u (x4), goalswitch 
     %total size = 31
     
-    divisors =  [72, 72, 3.1415, 30, 30, 5,...
+    divisors =  [72, 72, 3.1415,...
         72, 72, 3.1415,...
         72, 72, 3.1415,...
         1];
     x0 = [0;0;0;0;0;0];
     goalswitch = 0;
     testData = zeros(1,10);
-    for  i = 1:15
+    for  i = 1:30
         plot(x0(1), x0(2),'k>')
+        plot(i, x0(3), 'go')
         
         dist1 = sqrt((x0(1)-goal1(1))^2 +  (x0(2)-goal1(2))^2);
         dist2 = sqrt((x0(1)-goal2(1))^2 +  (x0(2)-goal2(2))^2);
         angle1 =  atan2(goal1(2)  -  x0(2), goal1(1) - x0(1));
         angle2 =  atan2(goal2(2)  -  x0(2), goal2(1) - x0(1));
-        if(dist1 <= 1 && goalswitch~=1)
+        if(dist1 <= 3 && goalswitch~=1)
             goalswitch  = 1;
         end
 
-        inputData = [x0(1:6)', goal1(1:3), goal2(1:3), goalswitch];
+        %inputData = [x0(1:6)', goal1(1:3), goal2(1:3), goalswitch];
         %inputData = [x0(1:6)', dist1, angle1, goal1(3), dist2, angle2, goal2(3), goalswitch];
+        inputData = [x0(1:3)', goal1(1:3), goal2(1:3), goalswitch];
 
         inputData = inputData ./ divisors;
         Ypredict = predict(imitateMPCNetwork, inputData);
         u = Ypredict';
-        u = [u(1) * 30, u(2) * 30, u(3) * 5];
+        u = [u(1) * 30, u(2) * 30, u(3) * 3.1415];
         %u = u*64.2455;
         x0 = velStateFcn(x0, u);
         %x0 = mecanumStateFcn(x0, u);
@@ -153,13 +157,11 @@ end
 save('testData','testData')
 
 
-function returnState = mecanumStateFcn(x, u)
+function returnState = mecanumStateFcn(x, u)  %u is xvel, yvel, thetavel (relative to  body)
     % Forward kinematics matrix (body velocities)
-    J = 1/4 * [
-        1/2,  -1/2, -1/2,  1/2; %x
-        1, 1, 1, 1; %y
-       1/(2*7.5), -1/(2*7.5), 1/(2*7.5), -1/(2*7.5)
-    ];
+    J = [1,0,0;
+         0,1,0;
+         0,0,1];
     A = eye(6);
     B = 1 * J;
     first = A * x;
@@ -167,8 +169,8 @@ function returnState = mecanumStateFcn(x, u)
     x(3) = wrapToPi(x(3));
     theta = x(3) + second(3);
     theta = wrapToPi(theta);
-    xvalue = (second(1) * cos(theta)) +  (second(2) * sin(theta));
-    yvalue = (second(1) * sin(theta)) +  (second(2) * cos(theta));
+    xvalue = (second(1) * cos(x(3))) -  (second(2) * sin(x(3))); %these  kinematics are flipped
+    yvalue = (second(1) * sin(x(3))) +  (second(2) * cos(x(3)));
     xvel = [xvalue;
              yvalue;
              second(3)];
@@ -190,6 +192,7 @@ function returnState = velStateFcn(x, u)
     xnext(3) = wrapToPi(xnext(3));
     returnState  = [xnext; xvel];
 end
+
 function c = stageCost(stage,x,u, stageParam)
     goal = stageParam;
     posErr = norm(x(1:2) - goal(1:2));
@@ -200,16 +203,17 @@ function c = stageCost(stage,x,u, stageParam)
 
     distanceToGoal = posErr;
 
-    posWeight = 300;
-    angWeight = 100000;
+    posWeight = 200;
+    angWeight = 5000;
     trackingCost = posWeight * posErr^2 + angWeight * angErr^2;
+    strafeCost = u(2)^2 * 0;
 
-    velCost = 120;
-    velocityCost = velCost * velErr^2 + velCost * angVelErr^2;
+    velCost = 320;
+    velocityCost = velCost * velErr^2 + 3200 * angVelErr^2;
     controlCost = 0.1 * sum(u.^2);
     
     % Combine costs
-    c = trackingCost/5 + velocityCost;
+    c = trackingCost/5 + velocityCost + strafeCost;
 end
 function c = terminalCost(stage, x,u, stageParam)
     goal = stageParam;
@@ -218,8 +222,8 @@ function c = terminalCost(stage, x,u, stageParam)
     velErr = norm(x(4:5)) - norm(goal(4:5)); 
     angVelErr = abs(x(6)  - goal(6)); 
     
-    positionCost = 300 * posErr^2;      
-    orientationCost = 30000 * angErr^2;    
+    positionCost = 800 * posErr^2;      
+    orientationCost = 100000 * angErr^2;    
     velocityCost = 120 * velErr^2;       
     angularVelCost = 120 * angVelErr^2; 
     

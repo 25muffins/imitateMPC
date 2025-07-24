@@ -1,9 +1,9 @@
-import linearNetwork
+import MPCPathGenNetwork
 import tensorflow as tf
-model = linearNetwork.load_model()
-model.export("linearNetworkSavedModel")
-converter = tf.lite.TFLiteConverter.from_saved_model("linearNetworkSavedModel")
+model = MPCPathGenNetwork.load_model()
+model.export("MPCPathGenSavedModel")
+converter = tf.lite.TFLiteConverter.from_saved_model("MPCPathGenSavedModel")
 tflite_model = converter.convert()
 
-with open('linearNetwork.tflite', 'wb') as f:
+with open('MPCPathGen.tflite', 'wb') as f:
   f.write(tflite_model)

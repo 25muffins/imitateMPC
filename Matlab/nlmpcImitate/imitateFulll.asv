@@ -6,11 +6,11 @@
 %f2 = load('fasterStrafing2.mat');
 %f3 = load('fasterStrafing3.mat');
 
-mmp = load('MPCmadePath.mat');
-wvels = load('MPCmadePathWVels.mat');
-wvels2 = load('MPCmadePathWVels2.mat');
-da = load('MPCDistAngle1.mat');
-fr = load('realthistime.mat');
+%mmp = load('MPCmadePath.mat');
+%wvels = load('MPCmadePathWVels.mat');
+%wvels2 = load('MPCmadePathWVels2.mat');
+%da = load('MPCDistAngle1.mat');
+v1 = load('v1.mat');
 
 
 %DataF = f.Data(~all(f.Data==0, 2), :);
@@ -20,7 +20,7 @@ fr = load('realthistime.mat');
 
 %[sys,Vx] = createModelForMPCImLKA;
 %[mpcobj,initialState] = createMPCobjImLKA(sys);
-data = [da.d];
+data = [v1.d];
 size(data)
 
 %normalize
@@ -66,16 +66,16 @@ numActions = 4;
 %trainOutput = shuffledTrainData(:,14:17);
 %validationInput = validationData(:,[1:3 8:9 11:12 18]);
 %validationOutput = validationData(:,14:17);
-trainInput = shuffledTrainData(:,[1:6 7:9 15:17 31]);
+trainInput = shuffledTrainData(:,[1:6 13:14 9 21:22 17 31]);
 trainOutput = shuffledTrainData(:,23:26);
-validationInput = validationData(:,[1:6 7:9 15:17 31]);
+validationInput = validationData(:,[1:6 13:14 9 21:22 17 31]);
 validationOutput = validationData(:,23:26);
 
 validationCellArray = {validationInput,validationOutput};
 
 %testDataInput = testData(:,[1:3 8:9 11:12 18]);
 %testDataOutput = testData(:,14:17);
-testDataInput = testData(:,[1:6 7:9 15:17 31]);
+testDataInput = testData(:,[1:6 13:14 9 21:22 17 31]);
 testDataOutput = testData(:,23:26);
 
 rng(0);
@@ -83,6 +83,7 @@ imitateMPCLayers = [
     featureInputLayer(numObs) 
     fullyConnectedLayer(450)
     reluLayer
+    dropoutLayer(0.2)
     fullyConnectedLayer(400)
     reluLayer
     fullyConnectedLayer(300)
@@ -109,7 +110,7 @@ options = trainingOptions("adam", ...
     Plots="training-progress", ...
     Metrics="mae", ...
     Shuffle="every-epoch", ...
-    MaxEpochs=100, ...
+    MaxEpochs=200, ...
     MiniBatchSize=512, ...
     ValidationData=validationCellArray, ...
     InitialLearnRate=1e-3, ...
@@ -125,4 +126,4 @@ imitateMPCNetwork = trainnet( ...
     "mae", ...
     options);
 
-save("distAngleNetwork", "imitateMPCNetwork", "testDataInput","testDataOutput")
+save("v1Network", "imitateMPCNetwork", "testDataInput","testDataOutput")
