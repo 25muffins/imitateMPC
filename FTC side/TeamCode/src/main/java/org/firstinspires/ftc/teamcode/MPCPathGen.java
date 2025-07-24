@@ -64,6 +64,7 @@ public class MPCPathGen extends LinearOpMode {
     public static float[] goal2 = {20,-20, 2};
     public static float[] startPos = {0,0,0};
     public  static double[] fc = new double[]{0,  1, 0};
+    public static double lateralMult = 1.7;
 
 
     @Override
@@ -188,18 +189,24 @@ public class MPCPathGen extends LinearOpMode {
             telemetry.addData("imu", getHeading());
             telemetry.addData("goalswtich", goalSwitch);
             telemetry.addData("voltage", voltageSensor.getVoltage());
-            Pose2d fcTest = fieldCentric(fc[0], fc[1], fc[2], voltageSensor.getVoltage(), getHeading());
-            List<Double> dpTest = getDrivePower(fcTest);
-            telemetry.addData("fcTest", Arrays.toString(new double[]{fcTest.getX(), fcTest.getY(), fcTest.getHeading()}));
-            telemetry.addData("dpTest", Arrays.toString(new double[]{dpTest.get(0), dpTest.get(1), dpTest.get(2), dpTest.get(3)}));
-            bl.setPower(speed*dpTest.get(0));
-            fl.setPower(speed*dpTest.get(1));
-            fr.setPower(speed*dpTest.get(2));
-            br.setPower(speed*dpTest.get(3));
-//            fl.setPower(speed*dpTest.get(0));
-//            bl.setPower(speed*dpTest.get(1));
-//            br.setPower(speed*dpTest.get(2));
-//            fr.setPower(speed*dpTest.get(3));
+//            Pose2d fcTest = fieldCentric(fc[0], fc[1], fc[2], voltageSensor.getVoltage(), getHeading());
+//            List<Double> dpTest = getDrivePower(fcTest);
+//            telemetry.addData("fcTest", Arrays.toString(new double[]{fcTest.getX(), fcTest.getY(), fcTest.getHeading()}));
+//            telemetry.addData("dpTest", Arrays.toString(new double[]{dpTest.get(0), dpTest.get(1), dpTest.get(2), dpTest.get(3)}));
+
+            float[] convertBackOutputs = convertBack(outputs[0]);
+            Pose2d fcActual = fieldCentric(convertBackOutputs[0], convertBackOutputs[1], convertBackOutputs[2], voltageSensor.getVoltage(), getHeading());
+            List<Double> dp = getDrivePower(fcActual);
+            telemetry.addData("fcActual", Arrays.toString(new double[]{fcActual.getX(), fcActual.getY(), fcActual.getHeading()}));
+            telemetry.addData("dp", Arrays.toString(new double[]{dp.get(0), dp.get(1), dp.get(2), dp.get(3)}));
+//            bl.setPower(speed*dpTest.get(0));
+//            fl.setPower(speed*dpTest.get(1));
+//            fr.setPower(speed*dpTest.get(2));
+//            br.setPower(speed*dpTest.get(3));
+            fl.setPower(speed*dp.get(0));
+            bl.setPower(speed*dp.get(1));
+            br.setPower(speed*dp.get(2));
+            fr.setPower(speed*dp.get(3));
 
             telemetry.update();
             localizer.update();
@@ -209,10 +216,10 @@ public class MPCPathGen extends LinearOpMode {
         return imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS);
     }
     float[] convertCoordinates(float x, float y){
-        return new float[] {y, x};
+        return new float[] {-y, x};
     }
     float[] convertBack(float[] outputs){
-        return new float[] {outputs[1], outputs[0], outputs[2]};
+        return new float[] {outputs[1]*30, outputs[0]*30, (float) (outputs[2]*3.1415)};
     }
     private MappedByteBuffer loadModelFile() throws IOException {
         String modelPath = "MPCPathGen.tflite";
@@ -248,19 +255,19 @@ public class MPCPathGen extends LinearOpMode {
         normInputs[5] = (float) (inputs[5]/3.1415);
         normInputs[6] = inputs[6]/72;
         normInputs[7] = inputs[7]/72;
-        normInputs[8] = (float) (inputs[7]/3.1415);
+        normInputs[8] = (float) (inputs[8]/3.1415);
         normInputs[9] = inputs[9];
         return normInputs;
     }
     public Pose2d fieldCentric(double x, double y, double h, double voltage, double currHeading) {
-        float voltageComp = 1;//(float) (12.0 / voltage);
+        float voltageComp = (float) (12.0 / voltage);
         double[] p = {x * voltageComp, y * voltageComp, h * voltageComp};
         Vector2d vec = new Vector2d(p[0], p[1]).rotated(-currHeading);
-        return new Pose2d(vec.getX(), -vec.getY(), -p[2]); //clockwise
+        return new Pose2d(vec.getX(), -vec.getY(), p[2]); //clockwise
     }
 
     private List<Double> getDrivePower(Pose2d pose2d) {
-        return MecanumKinematics.robotToWheelVelocities(pose2d, 1, 1, 1);
+        return MecanumKinematics.robotToWheelVelocities(pose2d, 1, 1, lateralMult);
     }
 
 }
