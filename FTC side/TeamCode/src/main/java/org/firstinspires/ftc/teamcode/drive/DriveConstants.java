@@ -21,7 +21,7 @@ public class DriveConstants {
     /*
      * These are motor constants that should be listed online for your motors.
      */
-    public static final double TICKS_PER_REV = 1;
+    public static final double TICKS_PER_REV = 8192;
     public static final double MAX_RPM = 1;
 
     /*
@@ -54,8 +54,8 @@ public class DriveConstants {
      * motor encoders or have elected not to use them for velocity control, these values should be
      * empirically tuned.
      */
-    public static double kV = 1.0 / rpmToVelocity(MAX_RPM);
-    public static double kA = 0;
+    public static double kV = 0.015;
+    public static double kA = 0.001;
     public static double kStatic = 0;
 
     /*

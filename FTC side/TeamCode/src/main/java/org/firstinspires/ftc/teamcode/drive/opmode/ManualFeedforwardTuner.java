@@ -22,6 +22,7 @@ import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
 import com.qualcomm.robotcore.util.RobotLog;
@@ -98,6 +99,10 @@ public class ManualFeedforwardTuner extends LinearOpMode {
         DcMotorEx bl = hardwareMap.get(DcMotorEx.class, "bl");
         DcMotorEx fr = hardwareMap.get(DcMotorEx.class, "fr");
         DcMotorEx br = hardwareMap.get(DcMotorEx.class, "br");
+        fl.setDirection(DcMotorSimple.Direction.REVERSE);
+        bl.setDirection(DcMotorSimple.Direction.REVERSE);
+        br.setDirection(DcMotorSimple.Direction.REVERSE);
+        fr.setDirection(DcMotorSimple.Direction.FORWARD);
         localizer = new TwoWheelTrackingLocalizer(fl, bl,
                 () -> AngleUnit.normalizeRadians(imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS)),
                 () -> imu.getRobotAngularVelocity(AngleUnit.RADIANS).zRotationRate); //parallel, perp, orientation, velocity

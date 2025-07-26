@@ -71,7 +71,7 @@ planner.States(3).Max =  pi;
 clf
 for ct= 1:1e0
     ct
-    goal1 = [-72,  60, -1.7,0,0 0];
+    goal1 = [-72,  60, -2,0,0 0];
     goal2 = [60, -10, 3, 0, 0, 0];
     waypoints =  [goal1;  goal2];
     x = [0; 0; 0; 0; 0; 0];

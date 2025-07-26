@@ -71,7 +71,7 @@ rng(90)
 %clf
 % initialize
 d = zeros(1,32); %rows will automatically fill up
-for ct= 1:5e2
+for ct= 1:1e0
     ct
     goal1 = [144*rand-72, 144*rand-72, 2*pi*rand - pi,  0, 0, 0]
     %goal1 = [-72,  60, -2,0,0 0];
@@ -154,7 +154,7 @@ for ct= 1:5e2
 end
 
 % Create MAT file
-save('v7v2','d')
+save('test','d')
 
 
 function returnState = mecanumStateFcn(x, u)  %u is xvel, yvel, thetavel (relative to  body)

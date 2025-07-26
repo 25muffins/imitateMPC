@@ -26,6 +26,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
+import org.firstinspires.ftc.teamcode.drive.DriveConstants;
 import org.firstinspires.ftc.teamcode.util.DashboardUtil;
 import org.tensorflow.lite.Interpreter;
 
@@ -39,6 +40,7 @@ import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 @Config
 @Autonomous(name = "MPCPathGen")
@@ -54,10 +56,17 @@ public class MPCPathGen extends LinearOpMode {
 //    public static double brSpeed = 0;
 //    public static double frSpeed = 0;
 
-    public static double speed = 0;
+    public static double speed = 3;
+    public static double speedX = 1;
+    public static double speedY = 1;
+    public static double speedTheta = 1;
     public static double speed2 = 0;
-    public static double velo = 0;
-    public static double velo2  = 0;
+    public static double distCutoff = 6;
+
+    //for tuning feedforward
+//    public static float veloX = 0;
+//    public static float veloY  = 0;
+//    public static float veloTheta = 0;
 
 
     public static float[] goal1 = {10, -10, 2};
@@ -65,8 +74,9 @@ public class MPCPathGen extends LinearOpMode {
     public static float[] startPos = {0,0,0};
     public  static double[] fc = new double[]{0,  1, 0};
     public static double lateralMult = 1.7;
-    public static double  kV = 1.0;
-    public static double kA = 0.0;
+    public static double  kV = 0.015;
+    public static double kVTheta = 0.2;
+    public static double kA = 0;
 
 
     @Override
@@ -141,12 +151,11 @@ public class MPCPathGen extends LinearOpMode {
             float Dist1 = (float) Math.sqrt(Math.pow(RelativeGoal1[0] - RelativePose[0], 2) +  Math.pow(RelativeGoal1[1] - RelativePose[1],2));
             float Dist2 = (float) Math.sqrt(Math.pow(RelativeGoal2[0] - RelativePose[0], 2) +  Math.pow(RelativeGoal2[1] - RelativePose[1],2));
 
-            if(Dist1 <= 2 && goalSwitch != 1){
+            if(Dist1 <= distCutoff && goalSwitch != 1){
                 goalSwitch =  1;
             }
             if(Dist2 <=2 && goalSwitch == 1){
                 speed = speed2;
-                velo = velo2;
             }
 
             inputs[0] = RelativePose[0];
@@ -197,38 +206,55 @@ public class MPCPathGen extends LinearOpMode {
 //            telemetry.addData("dpTest", Arrays.toString(new double[]{dpTest.get(0), dpTest.get(1), dpTest.get(2), dpTest.get(3)}));
 
             float[] convertBackOutputs = convertBack(outputs[0]);
-            float vx = convertBackOutputs[0];
-            float vy = convertBackOutputs[1];
-            float omega = convertBackOutputs[2];
+            float vx = (float) (convertBackOutputs[0] * speed * speedX);
+            float vy = (float) (convertBackOutputs[1] * speed * speedY);
+            float omega = (float) (convertBackOutputs[2] * speed * speedTheta);
 
+            //currently broken, not using
             double dt = 0.01;
             float ax = (convertBackOutputs[0] - lastVel[0]) / (float) dt;
             float ay = (convertBackOutputs[1] - lastVel[1]) / (float) dt;
             float aOmega = (convertBackOutputs[2] - lastVel[2]) / (float) dt;
+
+
             float ffX = (float)(kV * vx + kA * ax);
             float ffY = (float)(kV * vy + kA * ay);
-            float ffOmega = (float)(kV * omega + kA * aOmega);
+            float ffOmega = (float)(kVTheta * omega + kA * aOmega);
+
             Pose2d fcActual = fieldCentric(ffX, ffY, ffOmega, voltageSensor.getVoltage(), getHeading());
             List<Double> dp = getDrivePower(fcActual);
 
             lastVel[0] = vx;
             lastVel[1] = vy;
             lastVel[2] = omega;
+
+            telemetry.addData("vx", vx);
+            telemetry.addData("vy", vy);
+            telemetry.addData("omega", omega);
+
+            telemetry.addData("ax", ax);
+            telemetry.addData("ay", ay);
+            telemetry.addData("aomega", aOmega);
             telemetry.addData("fcActual", Arrays.toString(new double[]{fcActual.getX(), fcActual.getY(), fcActual.getHeading()}));
             telemetry.addData("dp", Arrays.toString(new double[]{dp.get(0), dp.get(1), dp.get(2), dp.get(3)}));
 //            bl.setPower(speed*dpTest.get(0));
 //            fl.setPower(speed*dpTest.get(1));
 //            fr.setPower(speed*dpTest.get(2));
 //            br.setPower(speed*dpTest.get(3));
-            fl.setPower(speed*dp.get(0));
-            bl.setPower(speed*dp.get(1));
-            br.setPower(speed*dp.get(2));
-            fr.setPower(speed*dp.get(3));
+            fl.setPower(dp.get(0));
+            bl.setPower(dp.get(1));
+            br.setPower(dp.get(2));
+            fr.setPower(dp.get(3));
+            localizer.update();
+            Pose2d poseVelo = Objects.requireNonNull(localizer.getPoseVelocity(), "poseVelocity() must not be null. Ensure that the getWheelVelocities() method has been overridden in your localizer.");
+            telemetry.addData("veloX", poseVelo.getX());
+            telemetry.addData("veloY", -poseVelo.getY());
+            telemetry.addData("veloHeading", poseVelo.getHeading());
 
             double totalTime = timer.milliseconds() - startTime;
             telemetry.addData("totalTime", totalTime);
             telemetry.update();
-            localizer.update();
+
         }
     }
     double getHeading() {
@@ -238,7 +264,7 @@ public class MPCPathGen extends LinearOpMode {
         return new float[] {-y, x};
     }
     float[] convertBack(float[] outputs){
-        return new float[] {outputs[1]*30, outputs[0]*30, (float) (outputs[2]*3.1415)};
+        return new float[] {outputs[1]*30, -outputs[0]*30, (float) (outputs[2]*3.1415)};
     }
     private MappedByteBuffer loadModelFile() throws IOException {
         String modelPath = "MPCPathGen.tflite";
@@ -282,7 +308,7 @@ public class MPCPathGen extends LinearOpMode {
         float voltageComp = (float) (12.0 / voltage);
         double[] p = {x * voltageComp, y * voltageComp, h * voltageComp};
         Vector2d vec = new Vector2d(p[0], p[1]).rotated(-currHeading);
-        return new Pose2d(vec.getX(), -vec.getY(), p[2]); //clockwise
+        return new Pose2d(vec.getX(), vec.getY(), p[2]); //clockwise
     }
 
     private List<Double> getDrivePower(Pose2d pose2d) {
