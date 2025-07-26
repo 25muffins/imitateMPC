@@ -67,14 +67,14 @@ planner.States(3).Max =  pi;
 
 
 clf
-rng(60)
+rng(90)
 %clf
 % initialize
 d = zeros(1,32); %rows will automatically fill up
-for ct= 1:1e0
+for ct= 1:5e2
     ct
-    %goal1 = [144*rand-72, 144*rand-72, 2*pi*rand - pi,  0, 0, 0]
-    goal1 = [-72,  60, -2,0,0 0];
+    goal1 = [144*rand-72, 144*rand-72, 2*pi*rand - pi,  0, 0, 0]
+    %goal1 = [-72,  60, -2,0,0 0];
     goal2 = [144*rand-72, 144*rand-72, 2*pi*rand - pi, 0, 0, 0]
     waypoints =  [goal1;  goal2];
     x = [0; 0; 0; 0; 0; 0];
@@ -154,7 +154,7 @@ for ct= 1:1e0
 end
 
 % Create MAT file
-save('testData','d')
+save('v7v2','d')
 
 
 function returnState = mecanumStateFcn(x, u)  %u is xvel, yvel, thetavel (relative to  body)
@@ -191,8 +191,8 @@ function c = stageCost(stage,x,u, stageParam)
 
     distanceToGoal = posErr;
 
-    posWeight = 250;
-    angWeight = 80000;
+    posWeight = 280;
+    angWeight = 100000;
     trackingCost = posWeight * posErr^2 + angWeight * angErr^2;
     strafeCost = u(2)^2 * 0;
 

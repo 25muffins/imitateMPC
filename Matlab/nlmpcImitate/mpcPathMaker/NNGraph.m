@@ -1,4 +1,4 @@
-load("v6Network.mat")
+load("v7Network.mat")
 % Creates the MAT file 'InputDataFileImLKA.mat' based on the value of
 % 'isRandom'
 
@@ -133,7 +133,7 @@ for ct= 1:1e0
         dist2 = sqrt((x0(1)-goal2(1))^2 +  (x0(2)-goal2(2))^2);
         angle1 =  atan2(goal1(2)  -  x0(2), goal1(1) - x0(1));
         angle2 =  atan2(goal2(2)  -  x0(2), goal2(1) - x0(1));
-        if(dist1 <= 3 && goalswitch~=1)
+        if(dist1 <= 6 && goalswitch~=1)
             goalswitch  = 1;
         end
 

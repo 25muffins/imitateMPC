@@ -65,6 +65,8 @@ public class MPCPathGen extends LinearOpMode {
     public static float[] startPos = {0,0,0};
     public  static double[] fc = new double[]{0,  1, 0};
     public static double lateralMult = 1.7;
+    public static double  kV = 1.0;
+    public static double kA = 0.0;
 
 
     @Override
@@ -96,6 +98,7 @@ public class MPCPathGen extends LinearOpMode {
         float[] inputs = {0,0,0, 0, 0, 0, 0, 0, 0, 0};
         float[][] outputs = {{0,0,0}};
         float goalSwitch = 0;
+        float[] lastVel = {0, 0, 0}; // vx, vy, omega
 
         Pose2d pose;
         double heading;
@@ -118,6 +121,7 @@ public class MPCPathGen extends LinearOpMode {
 
         waitForStart();
         while(opModeIsActive()){
+            double startTime = timer.milliseconds();
             pose = localizer.getPoseEstimate();
             inputs = new float[]{(float) pose.getX(), (float) pose.getY(), (float) getHeading(),
                     goal1[0],  goal1[1], goal1[2],  goal2[0], goal2[1], goal2[2], 0}; //100% just for field drawing
@@ -163,9 +167,8 @@ public class MPCPathGen extends LinearOpMode {
 
 
             timer.reset();
-            double startTime = timer.milliseconds();
+
             interpreter.run(normedInputs, outputs);
-            double totalTime = timer.milliseconds() - startTime;
 
             // [fr, fl, br, bl]
 
@@ -180,7 +183,6 @@ public class MPCPathGen extends LinearOpMode {
 //            br.setPower(brSpeed);
 //            fr.setPower(frSpeed);
 
-            telemetry.addData("totalTime", totalTime);
             telemetry.addData("outputs", Arrays.toString(outputs[0]));
             telemetry.addData("currentPosRelative", Arrays.toString(new float[]{inputs[0], inputs[1], inputs[2]}));
             telemetry.addData("goal1Relative", Arrays.toString(new float[]{RelativeGoal1[0], RelativeGoal1[1], goal1[2]}));
@@ -195,8 +197,23 @@ public class MPCPathGen extends LinearOpMode {
 //            telemetry.addData("dpTest", Arrays.toString(new double[]{dpTest.get(0), dpTest.get(1), dpTest.get(2), dpTest.get(3)}));
 
             float[] convertBackOutputs = convertBack(outputs[0]);
-            Pose2d fcActual = fieldCentric(convertBackOutputs[0], convertBackOutputs[1], convertBackOutputs[2], voltageSensor.getVoltage(), getHeading());
+            float vx = convertBackOutputs[0];
+            float vy = convertBackOutputs[1];
+            float omega = convertBackOutputs[2];
+
+            double dt = 0.01;
+            float ax = (convertBackOutputs[0] - lastVel[0]) / (float) dt;
+            float ay = (convertBackOutputs[1] - lastVel[1]) / (float) dt;
+            float aOmega = (convertBackOutputs[2] - lastVel[2]) / (float) dt;
+            float ffX = (float)(kV * vx + kA * ax);
+            float ffY = (float)(kV * vy + kA * ay);
+            float ffOmega = (float)(kV * omega + kA * aOmega);
+            Pose2d fcActual = fieldCentric(ffX, ffY, ffOmega, voltageSensor.getVoltage(), getHeading());
             List<Double> dp = getDrivePower(fcActual);
+
+            lastVel[0] = vx;
+            lastVel[1] = vy;
+            lastVel[2] = omega;
             telemetry.addData("fcActual", Arrays.toString(new double[]{fcActual.getX(), fcActual.getY(), fcActual.getHeading()}));
             telemetry.addData("dp", Arrays.toString(new double[]{dp.get(0), dp.get(1), dp.get(2), dp.get(3)}));
 //            bl.setPower(speed*dpTest.get(0));
@@ -208,6 +225,8 @@ public class MPCPathGen extends LinearOpMode {
             br.setPower(speed*dp.get(2));
             fr.setPower(speed*dp.get(3));
 
+            double totalTime = timer.milliseconds() - startTime;
+            telemetry.addData("totalTime", totalTime);
             telemetry.update();
             localizer.update();
         }

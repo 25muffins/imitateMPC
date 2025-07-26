@@ -10,9 +10,8 @@
 %wvels = load('MPCmadePathWVels.mat');
 %wvels2 = load('MPCmadePathWVels2.mat');
 %da = load('MPCDistAngle1.mat');
-v6 = load('v6.mat');
-v6v2 = load('v6v2.mat');
-
+v7 = load('v7.mat');
+v7v2 = load('v7v2.mat');
 
 %DataF = f.Data(~all(f.Data==0, 2), :);
 %DataF2 = f2.Data(~all(f2.Data==0, 2), :);
@@ -21,7 +20,7 @@ v6v2 = load('v6v2.mat');
 
 %[sys,Vx] = createModelForMPCImLKA;
 %[mpcobj,initialState] = createMPCobjImLKA(sys);
-data = [v6.d; v6v2.d];
+data = [v7.d; v7v2.d];
 size(data)
 
 %normalize
@@ -127,4 +126,4 @@ imitateMPCNetwork = trainnet( ...
     "mae", ...
     options);
 
-save("v6Network", "imitateMPCNetwork", "testDataInput","testDataOutput")
+save("v7Network", "imitateMPCNetwork", "testDataInput","testDataOutput")

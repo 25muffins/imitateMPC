@@ -13,19 +13,26 @@ import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.acmerobotics.roadrunner.drive.DriveSignal;
 import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.kinematics.Kinematics;
+import com.acmerobotics.roadrunner.kinematics.MecanumKinematics;
 import com.acmerobotics.roadrunner.profile.MotionProfile;
 import com.acmerobotics.roadrunner.profile.MotionProfileGenerator;
 import com.acmerobotics.roadrunner.profile.MotionState;
 import com.acmerobotics.roadrunner.util.NanoClock;
+import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
 import com.qualcomm.robotcore.util.RobotLog;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.teamcode.drive.DriveConstants;
 import org.firstinspires.ftc.teamcode.drive.SampleMecanumDrive;
+import org.firstinspires.ftc.teamcode.drive.TwoWheelTrackingLocalizer;
 
+import java.util.List;
 import java.util.Objects;
 
 /*
@@ -50,7 +57,6 @@ public class ManualFeedforwardTuner extends LinearOpMode {
 
     private FtcDashboard dashboard = FtcDashboard.getInstance();
 
-    private SampleMecanumDrive drive;
 
     enum Mode {
         DRIVER_MODE,
@@ -64,6 +70,15 @@ public class ManualFeedforwardTuner extends LinearOpMode {
         MotionState goal = new MotionState(movingForward ? DISTANCE : 0, 0, 0, 0);
         return MotionProfileGenerator.generateSimpleMotionProfile(start, goal, MAX_VEL, MAX_ACCEL);
     }
+    private void setDrivePower(Pose2d pose2d, DcMotorEx fl, DcMotorEx bl, DcMotorEx br, DcMotorEx fr) {
+        List<Double> dp = MecanumKinematics.robotToWheelVelocities(pose2d, 1, 1, 1.5);
+        fl.setPower(dp.get(0));
+        bl.setPower(dp.get(1));
+        br.setPower(dp.get(2));
+        fr.setPower(dp.get(3));
+    }
+    IMU imu;
+    TwoWheelTrackingLocalizer localizer;
 
     @Override
     public void runOpMode() {
@@ -73,8 +88,19 @@ public class ManualFeedforwardTuner extends LinearOpMode {
         }
 
         Telemetry telemetry = new MultipleTelemetry(this.telemetry, dashboard.getTelemetry());
-
-        drive = new SampleMecanumDrive(hardwareMap);
+        imu = hardwareMap.get(IMU.class, "imu");
+        imu.initialize(new IMU.Parameters(new RevHubOrientationOnRobot(
+                RevHubOrientationOnRobot.LogoFacingDirection.RIGHT,
+                RevHubOrientationOnRobot.UsbFacingDirection.UP
+        )));
+        imu.resetYaw();
+        DcMotorEx fl = hardwareMap.get(DcMotorEx.class, "fl");
+        DcMotorEx bl = hardwareMap.get(DcMotorEx.class, "bl");
+        DcMotorEx fr = hardwareMap.get(DcMotorEx.class, "fr");
+        DcMotorEx br = hardwareMap.get(DcMotorEx.class, "br");
+        localizer = new TwoWheelTrackingLocalizer(fl, bl,
+                () -> AngleUnit.normalizeRadians(imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS)),
+                () -> imu.getRobotAngularVelocity(AngleUnit.RADIANS).zRotationRate); //parallel, perp, orientation, velocity
 
         final VoltageSensor voltageSensor = hardwareMap.voltageSensor.iterator().next();
 
@@ -119,10 +145,10 @@ public class ManualFeedforwardTuner extends LinearOpMode {
 
                     final double NOMINAL_VOLTAGE = 12.0;
                     final double voltage = voltageSensor.getVoltage();
-                    drive.setDrivePower(new Pose2d(NOMINAL_VOLTAGE / voltage * targetPower, 0, 0));
-                    drive.updatePoseEstimate();
+                    setDrivePower(new Pose2d(NOMINAL_VOLTAGE / voltage * targetPower, 0, 0), fl, bl, br, fr);
+                    localizer.update();
 
-                    Pose2d poseVelo = Objects.requireNonNull(drive.getPoseVelocity(), "poseVelocity() must not be null. Ensure that the getWheelVelocities() method has been overridden in your localizer.");
+                    Pose2d poseVelo = Objects.requireNonNull(localizer.getPoseVelocity(), "poseVelocity() must not be null. Ensure that the getWheelVelocities() method has been overridden in your localizer.");
                     double currentVelo = poseVelo.getX();
 
                     // update telemetry
@@ -138,12 +164,12 @@ public class ManualFeedforwardTuner extends LinearOpMode {
                         profileStart = clock.seconds();
                     }
 
-                    drive.setWeightedDrivePower(
+                    setDrivePower(
                             new Pose2d(
                                     -gamepad1.left_stick_y,
                                     -gamepad1.left_stick_x,
                                     -gamepad1.right_stick_x
-                            )
+                            ), fl, bl, br, fr
                     );
                     break;
             }
