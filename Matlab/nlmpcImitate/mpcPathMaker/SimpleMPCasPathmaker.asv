@@ -67,26 +67,26 @@ planner.States(3).Max =  pi;
 
 
 clf
-rng(600)
+rng(200)
 %clf
 % initialize
 d = zeros(1,32); %rows will automatically fill up
-for ct= 1:5e2
+for ct= 1:5e0
     ct
     goal1 = [144*rand-72, 144*rand-72, 2*pi*rand - pi,  0, 0, 0]
     goal2 = [144*rand-72, 144*rand-72, 2*pi*rand - pi, 0, 0, 0]
-    %goal1 = [-72,  0, 3,0,0 0];
+    %goal1 = [0,  72, 0,0,0 0];
     %goal2 = [60, -10, 1.5, 0, 0, 0];
     waypoints =  [goal1;  goal2];
     x = [0; 0; 0; 0; 0; 0];
     u = zeros(nu,1);
 
-    planner.MV(1).Min = -30;
-    planner.MV(1).Max = 30;
-    planner.MV(2).Min = -30;
+    planner.MV(1).Min = -50;
+    planner.MV(1).Max = 50;
+    planner.MV(2).Min = -50;
     planner.MV(2).Max = 30;
-    planner.MV(3).Min = -3.13;
-    planner.MV(3).Max = 3.13;
+    planner.MV(3).Min = -5;
+    planner.MV(3).Max = 5;
 
     midGoal = waypoints(1,:)';
     finalGoal = waypoints(2,:)';
@@ -155,7 +155,7 @@ for ct= 1:5e2
 end
 
 % Create MAT file
-save('v16','d')
+save('v10','d')
 
 
 function returnState = mecanumStateFcn(x, u)  %u is xvel, yvel, thetavel (relative to  body)
@@ -192,19 +192,17 @@ function c = stageCost(stage,x,u, stageParam)
 
     distanceToGoal = posErr;
 
-    posWeight = 300;
-    angWeight = 1500;
+    posWeight = 280;
+    angWeight = 20000;
     trackingCost = posWeight * posErr^2 + angWeight * angErr^2;
-    strafeCost = u(2)^2 * 0;
-    
-    forwardReward = u(1)^2 * -0;
+    strafeCost = u(2)^2 * 250;
 
     velCost = 320;
-    velocityCost = velCost * velErr^2 + 520 * angVelErr^2;
+    velocityCost = velCost * velErr^2 + 12000 * angVelErr^2;
     controlCost = 0.1 * sum(u.^2);
     
     % Combine costs
-    c = trackingCost/5 + velocityCost + strafeCost + forwardReward;
+    c = trackingCost/5 + velocityCost + strafeCost;
 end
 function c = terminalCost(stage, x,u, stageParam)
     goal = stageParam;
@@ -213,10 +211,10 @@ function c = terminalCost(stage, x,u, stageParam)
     velErr = norm(x(4:5)) - norm(goal(4:5)); 
     angVelErr = abs(x(6)  - goal(6)); 
     
-    positionCost = 100000 * posErr^2;      
-    orientationCost = 2200000 * angErr^2;    
+    positionCost = 8000 * posErr^2;      
+    orientationCost = 1000000 * angErr^2;    
     velocityCost = 1200 * velErr^2;       
-    angularVelCost = 5200 * angVelErr^2; 
+    angularVelCost = 1200 * angVelErr^2; 
     
     % Combine terminal costs
     c = 2*(positionCost + orientationCost + velocityCost + angularVelCost);

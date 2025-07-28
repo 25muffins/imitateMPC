@@ -56,12 +56,12 @@ public class MPCPathGen extends LinearOpMode {
 //    public static double brSpeed = 0;
 //    public static double frSpeed = 0;
 
-    public static double speed = 3;
+    public static double speed = 6;
     public static double speedX = 1;
     public static double speedY = 1;
-    public static double speedTheta = 1;
-    public static double speed2 = 0;
-    public static double distCutoff = 6;
+    public static double speedTheta = 2;
+    public static double speed2 = 6;
+    public static double distCutoff = 1;
 
     //for tuning feedforward
 //    public static float veloX = 0;
@@ -75,7 +75,7 @@ public class MPCPathGen extends LinearOpMode {
     public  static double[] fc = new double[]{0,  1, 0};
     public static double lateralMult = 1.7;
     public static double  kV = 0.015;
-    public static double kVTheta = 0.2;
+    public static double kVTheta = 0.3;
     public static double kA = 0;
 
 
@@ -124,7 +124,7 @@ public class MPCPathGen extends LinearOpMode {
 
         dashboard = FtcDashboard.getInstance();
         Telemetry telemetry = new MultipleTelemetry(this.telemetry, dashboard.getTelemetry());
-        telemetry.addData("updated",  "updated");
+        telemetry.addData("updated",  "v14");
         telemetry.update();
         drawField(new Pose2d(0,0,0), inputs);
 
@@ -267,7 +267,7 @@ public class MPCPathGen extends LinearOpMode {
         return new float[] {outputs[1]*30, -outputs[0]*30, (float) (outputs[2]*3.1415)};
     }
     private MappedByteBuffer loadModelFile() throws IOException {
-        String modelPath = "MPCPathGen.tflite";
+        String modelPath = "v16.tflite";
         AssetFileDescriptor fileDescriptor =
                 hardwareMap.appContext.getAssets().openFd(modelPath);
         FileInputStream inputStream =

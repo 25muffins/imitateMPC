@@ -1,9 +1,9 @@
-import MPCPathGenNetwork
+import v16Network
 import tensorflow as tf
-model = MPCPathGenNetwork.load_model()
-model.export("MPCPathGenSavedModel")
-converter = tf.lite.TFLiteConverter.from_saved_model("MPCPathGenSavedModel")
+model = v16Network.load_model()
+model.export("v16SavedModel")
+converter = tf.lite.TFLiteConverter.from_saved_model("v16SavedModel")
 tflite_model = converter.convert()
 
-with open('MPCPathGen.tflite', 'wb') as f:
+with open('v16.tflite', 'wb') as f:
   f.write(tflite_model)

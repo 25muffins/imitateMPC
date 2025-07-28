@@ -1,2 +1,2 @@
-load("v6Network.mat")
-exportNetworkToTensorFlow(imitateMPCNetwork, 'MPCPathGenNetwork')
+load("v16Network.mat")
+exportNetworkToTensorFlow(imitateMPCNetwork, 'v16Network')
