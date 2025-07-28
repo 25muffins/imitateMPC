@@ -41,8 +41,10 @@ planner.Ts = Ts;
 
 planner.Model.StateFcn = @mecanumStateFcn;
 planner.Model.IsContinuousTime = false;
-planner.States(3).Min  = -pi;
-planner.States(3).Max =  pi;
+planner.States(3).Min  = -4*pi;
+planner.States(3).Max =  4*pi;
+
+
 %for i = 1:4
  %   planner.MV(i).Min = -maxRev * wheelCircumference;
   %  planner.MV(i).Max = maxRev * wheelCircumference;
@@ -71,12 +73,26 @@ rng(600)
 %clf
 % initialize
 d = zeros(1,32); %rows will automatically fill up
-for ct= 1:5e2
+for ct= 1:5e0
     ct
     goal1 = [144*rand-72, 144*rand-72, 2*pi*rand - pi,  0, 0, 0]
     goal2 = [144*rand-72, 144*rand-72, 2*pi*rand - pi, 0, 0, 0]
-    %goal1 = [-72,  0, 3,0,0 0];
-    %goal2 = [60, -10, 1.5, 0, 0, 0];
+    %goal1 = [-72,  0, 3.1415,0,0 0];
+    %goal2 = [60, -10, -3.14, 0, 0, 0];
+
+    goal2Candidates = [goal2(3) - 2*pi, goal2(3) + 2*pi, goal2(3)];
+    lowestDist = 100;
+    bestCandidate = 0;
+    for candidates = 1:3
+        dist = abs(goal2Candidates(candidates) - goal1(3));
+        if dist < lowestDist
+            bestCandidate = goal2Candidates(candidates);
+            lowestDist = dist;
+        end
+    end
+    bestCandidate
+    goal2(3) = bestCandidate;
+
     waypoints =  [goal1;  goal2];
     x = [0; 0; 0; 0; 0; 0];
     u = zeros(nu,1);
@@ -106,6 +122,7 @@ for ct= 1:5e2
     sp =  [repmat(midGoal, N/2, 1); repmat(finalGoal, N/2, 1)];
     simData.StageParameter = sp;
     simData.TerminalState = finalGoal;
+    Optimization.CustomEqConFcn = @(stage,x,u,stageParam) periodicConstraint(x);
     [u, ~, info] = nlmpcmove(planner, x, u, simData);
     xTrackHistory = info.Xopt;
     uHistory  = info.MVopt;
@@ -113,7 +130,7 @@ for ct= 1:5e2
     plot(xTrackHistory(:, 1),xTrackHistory(:, 2))
     plot(xTrackHistory(:, 1),xTrackHistory(:, 2), 'ro')
     plot(1:N+1, xTrackHistory(1:N+1,3))
-    plot(1:N+1, xTrackHistory(1:N+1,6))
+    %plot(1:N+1, xTrackHistory(1:N+1,6))
     
     a  = size(uHistory);
     plot(waypoints(:,1), waypoints(:,2), 'go');
@@ -155,7 +172,7 @@ for ct= 1:5e2
 end
 
 % Create MAT file
-save('v16','d')
+save('v17','d')
 
 
 function returnState = mecanumStateFcn(x, u)  %u is xvel, yvel, thetavel (relative to  body)
@@ -167,9 +184,7 @@ function returnState = mecanumStateFcn(x, u)  %u is xvel, yvel, thetavel (relati
     B = 1 * J;
     first = A * x;
     second =  B  * u;
-    x(3) = wrapToPi(x(3));
     theta = x(3) + second(3);
-    theta = wrapToPi(theta);
     xvalue = (second(1) * cos(x(3))) -  (second(2) * sin(x(3))); %these  kinematics are flipped
     yvalue = (second(1) * sin(x(3))) +  (second(2) * cos(x(3)));
     xvel = [xvalue;
@@ -178,14 +193,15 @@ function returnState = mecanumStateFcn(x, u)  %u is xvel, yvel, thetavel (relati
     xnext = [xvalue + first(1);
              yvalue + first(2);
              theta];
-    xnext(3) = wrapToPi(xnext(3));
+    %xnext(3) = wrapToPi(xnext(3));
+    %xvel(3) = wrapToPi(xvel(3));
     returnState  = [xnext; xvel];
 
 end
 function c = stageCost(stage,x,u, stageParam)
     goal = stageParam;
     posErr = norm(x(1:2) - goal(1:2));
-    angErr = abs(wrapToPi(x(3) - goal(3)));
+    angErr = x(3) - goal(3);
     velErr = norm(x(4:5)) - norm(goal(4:5)); 
     angVelErr = abs(x(6)  - goal(6)); 
     
@@ -193,7 +209,7 @@ function c = stageCost(stage,x,u, stageParam)
     distanceToGoal = posErr;
 
     posWeight = 300;
-    angWeight = 1500;
+    angWeight = 3500;
     trackingCost = posWeight * posErr^2 + angWeight * angErr^2;
     strafeCost = u(2)^2 * 0;
     
@@ -209,7 +225,7 @@ end
 function c = terminalCost(stage, x,u, stageParam)
     goal = stageParam;
     posErr = norm(x(1:2) - goal(1:2));
-    angErr = abs(wrapToPi(x(3) - goal(3)));
+    angErr = x(3) - goal(3);
     velErr = norm(x(4:5)) - norm(goal(4:5)); 
     angVelErr = abs(x(6)  - goal(6)); 
     
@@ -220,5 +236,17 @@ function c = terminalCost(stage, x,u, stageParam)
     
     % Combine terminal costs
     c = 2*(positionCost + orientationCost + velocityCost + angularVelCost);
+end
+function ceq = periodicConstraint(x)
+    theta = x(3);
+    
+    % If theta would exceed bounds, constrain it to wrapped equivalent
+    if theta > pi
+        ceq = theta - (theta - 2*pi);  % Map to equivalent negative angle
+    elseif theta < -pi
+        ceq = theta - (theta + 2*pi);  % Map to equivalent positive angle
+    else
+        ceq = 0;  % No constraint needed
+    end
 end
 end

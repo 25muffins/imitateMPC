@@ -72,7 +72,7 @@ clf
 for ct= 1:1e0
     ct
     goal1 = [-72,  0, 2.5,0,0 0];
-    goal2 = [60, -10, -1.5, 0, 0, 0];
+    goal2 = [60, -10, -3.1415, 0, 0, 0];
     waypoints =  [goal1;  goal2];
     x = [0; 0; 0; 0; 0; 0];
     u = zeros(nu,1);
@@ -135,7 +135,7 @@ for ct= 1:1e0
         dist2 = sqrt((x0(1)-goal2(1))^2 +  (x0(2)-goal2(2))^2);
         angle1 =  atan2(goal1(2)  -  x0(2), goal1(1) - x0(1));
         angle2 =  atan2(goal2(2)  -  x0(2), goal2(1) - x0(1));
-        if(dist1 <= 1 && goalswitch~=1)
+        if(dist1 <= 6 && goalswitch~=1)
             goalswitch  = 1;
         end
 

@@ -67,26 +67,26 @@ planner.States(3).Max =  pi;
 
 
 clf
-rng(200)
+rng(600)
 %clf
 % initialize
 d = zeros(1,32); %rows will automatically fill up
-for ct= 1:5e0
+for ct= 1:1e0
     ct
-    goal1 = [144*rand-72, 144*rand-72, 2*pi*rand - pi,  0, 0, 0]
-    goal2 = [144*rand-72, 144*rand-72, 2*pi*rand - pi, 0, 0, 0]
-    %goal1 = [0,  72, 0,0,0 0];
-    %goal2 = [60, -10, 1.5, 0, 0, 0];
+    %goal1 = [144*rand-72, 144*rand-72, 2*pi*rand - pi,  0, 0, 0]
+    %goal2 = [144*rand-72, 144*rand-72, 2*pi*rand - pi, 0, 0, 0]
+    goal1 = [-72,  0, 3.1415,0,0 0];
+    goal2 = [60, -10, -3.14, 0, 0, 0];
     waypoints =  [goal1;  goal2];
     x = [0; 0; 0; 0; 0; 0];
     u = zeros(nu,1);
 
-    planner.MV(1).Min = -50;
-    planner.MV(1).Max = 50;
-    planner.MV(2).Min = -50;
+    planner.MV(1).Min = -30;
+    planner.MV(1).Max = 30;
+    planner.MV(2).Min = -30;
     planner.MV(2).Max = 30;
-    planner.MV(3).Min = -5;
-    planner.MV(3).Max = 5;
+    planner.MV(3).Min = -3.13;
+    planner.MV(3).Max = 3.13;
 
     midGoal = waypoints(1,:)';
     finalGoal = waypoints(2,:)';
@@ -113,7 +113,7 @@ for ct= 1:5e0
     plot(xTrackHistory(:, 1),xTrackHistory(:, 2))
     plot(xTrackHistory(:, 1),xTrackHistory(:, 2), 'ro')
     plot(1:N+1, xTrackHistory(1:N+1,3))
-    plot(1:N+1, xTrackHistory(1:N+1,6))
+    %plot(1:N+1, xTrackHistory(1:N+1,6))
     
     a  = size(uHistory);
     plot(waypoints(:,1), waypoints(:,2), 'go');
@@ -155,7 +155,7 @@ for ct= 1:5e0
 end
 
 % Create MAT file
-save('v10','d')
+save('v17','d')
 
 
 function returnState = mecanumStateFcn(x, u)  %u is xvel, yvel, thetavel (relative to  body)
@@ -167,9 +167,7 @@ function returnState = mecanumStateFcn(x, u)  %u is xvel, yvel, thetavel (relati
     B = 1 * J;
     first = A * x;
     second =  B  * u;
-    x(3) = wrapToPi(x(3));
     theta = x(3) + second(3);
-    theta = wrapToPi(theta);
     xvalue = (second(1) * cos(x(3))) -  (second(2) * sin(x(3))); %these  kinematics are flipped
     yvalue = (second(1) * sin(x(3))) +  (second(2) * cos(x(3)));
     xvel = [xvalue;
@@ -178,43 +176,46 @@ function returnState = mecanumStateFcn(x, u)  %u is xvel, yvel, thetavel (relati
     xnext = [xvalue + first(1);
              yvalue + first(2);
              theta];
-    xnext(3) = wrapToPi(xnext(3));
+    %xnext(3) = wrapToPi(xnext(3));
+    %xvel(3) = wrapToPi(xvel(3));
     returnState  = [xnext; xvel];
 
 end
 function c = stageCost(stage,x,u, stageParam)
     goal = stageParam;
     posErr = norm(x(1:2) - goal(1:2));
-    angErr = abs(wrapToPi(x(3) - goal(3)));
+    angErr = wrapToPi(x(3) - goal(3));
     velErr = norm(x(4:5)) - norm(goal(4:5)); 
     angVelErr = abs(x(6)  - goal(6)); 
     
 
     distanceToGoal = posErr;
 
-    posWeight = 280;
-    angWeight = 20000;
+    posWeight = 300;
+    angWeight = 2500;
     trackingCost = posWeight * posErr^2 + angWeight * angErr^2;
-    strafeCost = u(2)^2 * 250;
+    strafeCost = u(2)^2 * 0;
+    
+    forwardReward = u(1)^2 * -0;
 
     velCost = 320;
-    velocityCost = velCost * velErr^2 + 12000 * angVelErr^2;
+    velocityCost = velCost * velErr^2 + 520 * angVelErr^2;
     controlCost = 0.1 * sum(u.^2);
     
     % Combine costs
-    c = trackingCost/5 + velocityCost + strafeCost;
+    c = trackingCost/5 + velocityCost + strafeCost + forwardReward;
 end
 function c = terminalCost(stage, x,u, stageParam)
     goal = stageParam;
     posErr = norm(x(1:2) - goal(1:2));
-    angErr = abs(wrapToPi(x(3) - goal(3)));
+    angErr = wrapToPi(x(3) - goal(3));
     velErr = norm(x(4:5)) - norm(goal(4:5)); 
     angVelErr = abs(x(6)  - goal(6)); 
     
-    positionCost = 8000 * posErr^2;      
-    orientationCost = 1000000 * angErr^2;    
+    positionCost = 100000 * posErr^2;      
+    orientationCost = 2200000 * angErr^2;    
     velocityCost = 1200 * velErr^2;       
-    angularVelCost = 1200 * angVelErr^2; 
+    angularVelCost = 5200 * angVelErr^2; 
     
     % Combine terminal costs
     c = 2*(positionCost + orientationCost + velocityCost + angularVelCost);

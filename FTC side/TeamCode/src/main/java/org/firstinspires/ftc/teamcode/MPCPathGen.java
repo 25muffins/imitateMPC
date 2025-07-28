@@ -59,7 +59,7 @@ public class MPCPathGen extends LinearOpMode {
     public static double speed = 6;
     public static double speedX = 1;
     public static double speedY = 1;
-    public static double speedTheta = 2;
+    public static double speedTheta = 1;
     public static double speed2 = 6;
     public static double distCutoff = 1;
 
@@ -74,7 +74,7 @@ public class MPCPathGen extends LinearOpMode {
     public static float[] startPos = {0,0,0};
     public  static double[] fc = new double[]{0,  1, 0};
     public static double lateralMult = 1.7;
-    public static double  kV = 0.015;
+    public static double  kV = 0.03;
     public static double kVTheta = 0.3;
     public static double kA = 0;
 
@@ -124,7 +124,7 @@ public class MPCPathGen extends LinearOpMode {
 
         dashboard = FtcDashboard.getInstance();
         Telemetry telemetry = new MultipleTelemetry(this.telemetry, dashboard.getTelemetry());
-        telemetry.addData("updated",  "v14");
+        telemetry.addData("updated",  "v16");
         telemetry.update();
         drawField(new Pose2d(0,0,0), inputs);
 
