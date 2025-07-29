@@ -2,7 +2,7 @@
 #    MATLAB Deep Learning Toolbox Converter for TensorFlow Models.
 #    27-Jul-2025 20:07:43
 
-import v16Network.model
+import oldMatlabModels.v16Network.model
 import os
 
 def load_model(load_weights=True, debug=False):

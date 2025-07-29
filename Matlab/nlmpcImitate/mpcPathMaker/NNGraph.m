@@ -1,4 +1,4 @@
-load("v16Network.mat")
+load("v22Network.mat") %v22 has better angles, really good has better path following, take v22
 % Creates the MAT file 'InputDataFileImLKA.mat' based on the value of
 % 'isRandom'
 
@@ -24,17 +24,7 @@ wheelCircumference = 4.09 * pi;
 nu = 3;           % [fr, fl, br, bl]
 nx = 6;           % [x; y; theta; vx, vy, omega]
 ny = 3;
-N=20;
 
-%goal1 = [-72, -50, 0.5,  0, 0, 0];
-%goal2 = [-30, 72, 2, 0, 0, 0];
-%waypoints =  [goal1;  goal2];
-%dist1 = sqrt(goal1(1)^2   + goal1(2^2));
-%dist2 = sqrt((goal1(1) - goal2(1))^2  + (goal1(2) - goal2(2))^2);
-%approximateN = round((dist1+dist2)/10);
-%if mod(approximateN,  2) ==  1
-%    approximateN = approximateN+1;
-%end
 N = 18;
 
 planner = nlmpcMultistage(N, nx, nu);
@@ -44,37 +34,26 @@ planner.Ts = Ts;
 planner.Model.StateFcn = @mecanumStateFcn;
 planner.Model.IsContinuousTime = false;
 planner.States(3).Min  = -pi;
-planner.States(3).Max =  pi;
-%for i = 1:4
- %   planner.MV(i).Min = -maxRev * wheelCircumference;
-  %  planner.MV(i).Max = maxRev * wheelCircumference;
-%end
-%for i = 2:N
-%    if i == (N/2  +1)
-%        planner.Stages(i).CostFcn = @terminalCost;
-%    else
-%        planner.Stages(i).CostFcn = @stageCost;
-%    end
-%    planner.Stages(i).ParameterLength = 6;
-%    
-%end
-%planner.Stages(N+1).CostFcn = @terminalCost;
-%planner.Stages(N+1).ParameterLength = 6;
-%goal = [1;1;1; 0; 0;  0];
-%simData.StageParameter = repmat(goal', N, 1);
-%simData = getSimulationData(planner, 'TerminalState');
-%simData.TerminalState = goal;
-
-%validateFcns(planner, zeros(nx,1), zeros(nu,1), simData);
+planner.States(3).Min  = -4*pi;
+planner.States(3).Max =  4*pi;
 
 
 clf
 for ct= 1:1e0
     ct
-    goal1 = [-72,  0, 2.5,0,0 0];
-    goal2 = [60, -10, -3.1415, 0, 0, 0];
-    waypoints =  [goal1;  goal2];
     x = [0; 0; 0; 0; 0; 0];
+    goal1 = [-72,  -72, 3,0,0 0];
+    goal2 = [60, -10, -1, 0, 0, 0];
+
+    goal1Candidates = [goal1(3) - 2*pi, goal1(3) + 2*pi, goal1(3), goal1(3) - 4*pi, goal1(3) + 4*pi];
+    bc1 = findBestCandidate(goal1Candidates, x(3));
+    goal2Candidates = [goal2(3) - 2*pi, goal2(3) + 2*pi, goal2(3), goal2(3) - 4*pi, goal2(3) + 4*pi];
+    bc2 = findBestCandidate(goal2Candidates, bc1);
+    
+    goal1(3) = bc1;
+    goal2(3) = bc2;
+
+    waypoints =  [goal1;  goal2];
     u = zeros(nu,1);
 
     planner.MV(1).Min = -30;
@@ -109,6 +88,7 @@ for ct= 1:1e0
     plot(xTrackHistory(:, 1),xTrackHistory(:, 2))
     plot(xTrackHistory(:, 1),xTrackHistory(:, 2), 'ro')
     plot(1:N+1, xTrackHistory(1:N+1,3))
+    plot(1:N+1, wrapToPi(xTrackHistory(1:N+1,3)))
     plot(1:N+1, xTrackHistory(1:N+1,6))
     
     a  = size(uHistory);
@@ -120,9 +100,13 @@ for ct= 1:1e0
     % optimal u  (x4), past u (x4), goalswitch 
     %total size = 31
     
-    divisors =  [72, 72, 3.1415,...
-        72, 72, 3.1415,...
-        72, 72, 3.1415,...
+    %divisors =  [72, 72, 3.14,...
+        %72, 72, 3.14,...
+        %72, 72, 3.14,...
+        %1];
+    divisors =  [72, 72, 1, 1,...
+        72, 72, 1, 1,...
+        72, 72, 1, 1,...
         1];
     x0 = [0;0;0;0;0;0];
     goalswitch = 0;
@@ -135,13 +119,12 @@ for ct= 1:1e0
         dist2 = sqrt((x0(1)-goal2(1))^2 +  (x0(2)-goal2(2))^2);
         angle1 =  atan2(goal1(2)  -  x0(2), goal1(1) - x0(1));
         angle2 =  atan2(goal2(2)  -  x0(2), goal2(1) - x0(1));
-        if(dist1 <= 6 && goalswitch~=1)
+        if(dist1 <= 2 && goalswitch~=1)
             goalswitch  = 1;
         end
 
-        %inputData = [x0(1:6)', goal1(1:3), goal2(1:3), goalswitch];
-        %inputData = [x0(1:6)', dist1, angle1, goal1(3), dist2, angle2, goal2(3), goalswitch];
-        inputData = [x0(1:3)', goal1(1:3), goal2(1:3), goalswitch];
+        %inputData = [x0(1:3)', goal1(1:3), goal2(1:3), goalswitch];
+        inputData = [x0(1:2)', sin(x0(3)), cos(x0(3)), goal1(1:2), sin(goal1(3)), cos(goal1(3)), goal2(1:2), sin(goal2(3)), cos(goal2(3)) goalswitch];
 
         inputData = inputData ./ divisors;
         Ypredict = predict(imitateMPCNetwork, inputData);
@@ -168,9 +151,7 @@ function returnState = mecanumStateFcn(x, u)  %u is xvel, yvel, thetavel (relati
     B = 1 * J;
     first = A * x;
     second =  B  * u;
-    x(3) = wrapToPi(x(3));
     theta = x(3) + second(3);
-    theta = wrapToPi(theta);
     xvalue = (second(1) * cos(x(3))) -  (second(2) * sin(x(3))); %these  kinematics are flipped
     yvalue = (second(1) * sin(x(3))) +  (second(2) * cos(x(3)));
     xvel = [xvalue;
@@ -179,7 +160,8 @@ function returnState = mecanumStateFcn(x, u)  %u is xvel, yvel, thetavel (relati
     xnext = [xvalue + first(1);
              yvalue + first(2);
              theta];
-    xnext(3) = wrapToPi(xnext(3));
+    %xnext(3) = wrapToPi(xnext(3));
+    %xvel(3) = wrapToPi(xvel(3));
     returnState  = [xnext; xvel];
 
 end
@@ -194,25 +176,26 @@ function returnState = velStateFcn(x, u)
     xnext(3) = wrapToPi(xnext(3));
     returnState  = [xnext; xvel];
 end
+
 function c = stageCost(stage,x,u, stageParam)
     goal = stageParam;
     posErr = norm(x(1:2) - goal(1:2));
-    angErr = abs(wrapToPi(x(3) - goal(3)));
+    angErr = x(3) - goal(3);
     velErr = norm(x(4:5)) - norm(goal(4:5)); 
     angVelErr = abs(x(6)  - goal(6)); 
     
 
     distanceToGoal = posErr;
 
-    posWeight = 200;
-    angWeight = 0000;
+    posWeight = 150;
+    angWeight = 3000;
     trackingCost = posWeight * posErr^2 + angWeight * angErr^2;
     strafeCost = u(2)^2 * 0;
     
     forwardReward = u(1)^2 * -0;
 
-    velCost = 320;
-    velocityCost = velCost * velErr^2 + 120 * angVelErr^2;
+    velCost = 300;
+    velocityCost = velCost * velErr^2 + 520 * angVelErr^2;
     controlCost = 0.1 * sum(u.^2);
     
     % Combine costs
@@ -221,15 +204,26 @@ end
 function c = terminalCost(stage, x,u, stageParam)
     goal = stageParam;
     posErr = norm(x(1:2) - goal(1:2));
-    angErr = abs(wrapToPi(x(3) - goal(3)));
+    angErr = x(3) - goal(3);
     velErr = norm(x(4:5)) - norm(goal(4:5)); 
     angVelErr = abs(x(6)  - goal(6)); 
     
-    positionCost = 100000 * posErr^2;      
-    orientationCost = 2200000 * angErr^2;    
+    positionCost = 20000 * posErr^2;      
+    orientationCost = 152000 * angErr^2;    
     velocityCost = 1200 * velErr^2;       
     angularVelCost = 5200 * angVelErr^2; 
     
     % Combine terminal costs
     c = 2*(positionCost + orientationCost + velocityCost + angularVelCost);
+end
+function bestCandidate = findBestCandidate(candidates, startTheta)
+    lowestDist = 100;
+    bestCandidate = 0;
+    for c = 1:5
+        dist = abs(candidates(c) - startTheta);
+        if dist < lowestDist
+            bestCandidate = candidates(c);
+            lowestDist = dist;
+        end
+    end
 end

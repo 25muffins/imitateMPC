@@ -41,8 +41,8 @@ planner.Ts = Ts;
 
 planner.Model.StateFcn = @mecanumStateFcn;
 planner.Model.IsContinuousTime = false;
-planner.States(3).Min  = -4*pi;
-planner.States(3).Max =  4*pi;
+planner.States(3).Min  = -6*pi;
+planner.States(3).Max =  6*pi;
 
 
 %for i = 1:4
@@ -69,32 +69,28 @@ planner.States(3).Max =  4*pi;
 
 
 clf
-rng(600)
+rng(800)
 %clf
 % initialize
 d = zeros(1,32); %rows will automatically fill up
-for ct= 1:5e0
+for ct= 1:5e2
     ct
-    goal1 = [144*rand-72, 144*rand-72, 2*pi*rand - pi,  0, 0, 0]
-    goal2 = [144*rand-72, 144*rand-72, 2*pi*rand - pi, 0, 0, 0]
-    %goal1 = [-72,  0, 3.1415,0,0 0];
-    %goal2 = [60, -10, -3.14, 0, 0, 0];
-
-    goal2Candidates = [goal2(3) - 2*pi, goal2(3) + 2*pi, goal2(3)];
-    lowestDist = 100;
-    bestCandidate = 0;
-    for candidates = 1:3
-        dist = abs(goal2Candidates(candidates) - goal1(3));
-        if dist < lowestDist
-            bestCandidate = goal2Candidates(candidates);
-            lowestDist = dist;
-        end
-    end
-    bestCandidate
-    goal2(3) = bestCandidate;
+    x = [0; 0; 2*pi*rand - pi; 0; 0; 0];
+    goal1 = [144*rand-72, 144*rand-72, 2*pi*rand - pi,  0, 0, 0];
+    goal2 = [144*rand-72, 144*rand-72, 2*pi*rand - pi, 0, 0, 0];
+    %x = [0; 0; -3; 0; 0; 0];
+    %goal1 = [-72,  0, 3,0,0 0];
+    %goal2 = [60, -10, -3, 0, 0, 0];
+    goal1Candidates = [goal1(3) - 2*pi, goal1(3) + 2*pi, goal1(3), goal1(3) - 4*pi, goal1(3) + 4*pi];
+    bc1 = findBestCandidate(goal1Candidates, x(3))
+    goal2Candidates = [goal2(3) - 2*pi, goal2(3) + 2*pi, goal2(3), goal2(3) - 4*pi, goal2(3) + 4*pi];
+    bc2 = findBestCandidate(goal2Candidates, bc1)
+    
+    goal1(3) = bc1;
+    goal2(3) = bc2;
 
     waypoints =  [goal1;  goal2];
-    x = [0; 0; 0; 0; 0; 0];
+
     u = zeros(nu,1);
 
     planner.MV(1).Min = -30;
@@ -130,7 +126,8 @@ for ct= 1:5e0
     plot(xTrackHistory(:, 1),xTrackHistory(:, 2))
     plot(xTrackHistory(:, 1),xTrackHistory(:, 2), 'ro')
     plot(1:N+1, xTrackHistory(1:N+1,3))
-    %plot(1:N+1, xTrackHistory(1:N+1,6))
+    plot(N/2 + 1, goal1(3), 'bo')
+    plot(N+1, goal2(3), 'bo')
     
     a  = size(uHistory);
     plot(waypoints(:,1), waypoints(:,2), 'go');
@@ -166,13 +163,18 @@ for ct= 1:5e0
         if(i==a(1)) nextVels = [0,0,0];
         else nextVels = xTrackHistory(i+1, 4:6);
         end
+
+        currentPos(3) = wrapToPi(currentPos(3));
+        g1(3) = wrapToPi(g1(3));
+        g2(3) = wrapToPi(g2(3));
         
         d((ct-1) * a(1) + i,:) =  [currentPos(:)',  g1(:)', g2(:)', optimalU(:)', lastU(:)', goalswitch, nextVels];
     end
 end
+%plot(1:N+1, d(1:N+1,3))
 
 % Create MAT file
-save('v17','d')
+save('v22','d')
 
 
 function returnState = mecanumStateFcn(x, u)  %u is xvel, yvel, thetavel (relative to  body)
@@ -208,14 +210,14 @@ function c = stageCost(stage,x,u, stageParam)
 
     distanceToGoal = posErr;
 
-    posWeight = 300;
-    angWeight = 3500;
+    posWeight = 150;
+    angWeight = 4000;
     trackingCost = posWeight * posErr^2 + angWeight * angErr^2;
     strafeCost = u(2)^2 * 0;
     
     forwardReward = u(1)^2 * -0;
 
-    velCost = 320;
+    velCost = 300;
     velocityCost = velCost * velErr^2 + 520 * angVelErr^2;
     controlCost = 0.1 * sum(u.^2);
     
@@ -229,24 +231,23 @@ function c = terminalCost(stage, x,u, stageParam)
     velErr = norm(x(4:5)) - norm(goal(4:5)); 
     angVelErr = abs(x(6)  - goal(6)); 
     
-    positionCost = 100000 * posErr^2;      
-    orientationCost = 2200000 * angErr^2;    
+    positionCost = 20000 * posErr^2;      
+    orientationCost = 152000 * angErr^2;    
     velocityCost = 1200 * velErr^2;       
     angularVelCost = 5200 * angVelErr^2; 
     
     % Combine terminal costs
     c = 2*(positionCost + orientationCost + velocityCost + angularVelCost);
 end
-function ceq = periodicConstraint(x)
-    theta = x(3);
-    
-    % If theta would exceed bounds, constrain it to wrapped equivalent
-    if theta > pi
-        ceq = theta - (theta - 2*pi);  % Map to equivalent negative angle
-    elseif theta < -pi
-        ceq = theta - (theta + 2*pi);  % Map to equivalent positive angle
-    else
-        ceq = 0;  % No constraint needed
+function bestCandidate = findBestCandidate(candidates, startTheta)
+    lowestDist = 100;
+    bestCandidate = 0;
+    for c = 1:5
+        dist = abs(candidates(c) - startTheta);
+        if dist < lowestDist
+            bestCandidate = candidates(c);
+            lowestDist = dist;
+        end
     end
 end
 end

@@ -124,7 +124,7 @@ public class MPCPathGen extends LinearOpMode {
 
         dashboard = FtcDashboard.getInstance();
         Telemetry telemetry = new MultipleTelemetry(this.telemetry, dashboard.getTelemetry());
-        telemetry.addData("updated",  "v16");
+        telemetry.addData("updated",  "v19");
         telemetry.update();
         drawField(new Pose2d(0,0,0), inputs);
 
@@ -267,7 +267,7 @@ public class MPCPathGen extends LinearOpMode {
         return new float[] {outputs[1]*30, -outputs[0]*30, (float) (outputs[2]*3.1415)};
     }
     private MappedByteBuffer loadModelFile() throws IOException {
-        String modelPath = "v16.tflite";
+        String modelPath = "v19.tflite";
         AssetFileDescriptor fileDescriptor =
                 hardwareMap.appContext.getAssets().openFd(modelPath);
         FileInputStream inputStream =
@@ -291,17 +291,20 @@ public class MPCPathGen extends LinearOpMode {
         dashboard.sendTelemetryPacket(packet);
     }
     public float[] normalizeInputs(float[] inputs){
-        float[] normInputs = {1,2,3,4,5,6,7,8,9,10};
+        float[] normInputs = {1,2,3,4,5,6,7,8,9,10,11,12,13};
         normInputs[0] = inputs[0]/72;
         normInputs[1] = inputs[1]/72;
-        normInputs[2] = (float) (inputs[2]/3.1415);
-        normInputs[3] = inputs[3]/72;
-        normInputs[4] = inputs[4]/72;
-        normInputs[5] = (float) (inputs[5]/3.1415);
-        normInputs[6] = inputs[6]/72;
-        normInputs[7] = inputs[7]/72;
-        normInputs[8] = (float) (inputs[8]/3.1415);
-        normInputs[9] = inputs[9];
+        normInputs[2] = (float) (Math.sin(inputs[2]));
+        normInputs[3] = (float) (Math.cos(inputs[2]));
+        normInputs[4] = inputs[3]/72;
+        normInputs[5] = inputs[4]/72;
+        normInputs[6] = (float) (Math.sin(inputs[5]));
+        normInputs[7] = (float) (Math.cos(inputs[5]));
+        normInputs[8] = inputs[6]/72;
+        normInputs[9] = inputs[7]/72;
+        normInputs[10] = (float) (Math.sin(inputs[8]));
+        normInputs[11] = (float) (Math.sin(inputs[8]));
+        normInputs[12] = inputs[9];
         return normInputs;
     }
     public Pose2d fieldCentric(double x, double y, double h, double voltage, double currHeading) {
