@@ -1,4 +1,4 @@
-load("v22Network.mat") %v22 has better angles, really good has better path following, take v22
+load("really good.mat") %v22 has better angles, really good has better path following, take v22
 % Creates the MAT file 'InputDataFileImLKA.mat' based on the value of
 % 'isRandom'
 
@@ -42,8 +42,8 @@ clf
 for ct= 1:1e0
     ct
     x = [0; 0; 0; 0; 0; 0];
-    goal1 = [-72,  -72, 3,0,0 0];
-    goal2 = [60, -10, -1, 0, 0, 0];
+    goal1 = [-20,  0, -3,0,0 0];
+    goal2 = [0, 10, 0, 0, 0, 0];
 
     goal1Candidates = [goal1(3) - 2*pi, goal1(3) + 2*pi, goal1(3), goal1(3) - 4*pi, goal1(3) + 4*pi];
     bc1 = findBestCandidate(goal1Candidates, x(3));
@@ -130,8 +130,12 @@ for ct= 1:1e0
         Ypredict = predict(imitateMPCNetwork, inputData);
         u = Ypredict';
         u = [u(1) * 30, u(2) * 30, u(3) * 3.14];
+        %plot(i, u(3), 'ro')
         %u = u*64.2455;
         x0 = velStateFcn(x0, u);
+        %%if rand<0.1
+        %   x0(3) = -0.5;
+        %end
         %x0 = mecanumStateFcn(x0, u);
         testData(i,:) =  [x0(:)', u(:)', goalswitch];
         

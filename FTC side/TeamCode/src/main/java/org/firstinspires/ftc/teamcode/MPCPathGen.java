@@ -75,7 +75,7 @@ public class MPCPathGen extends LinearOpMode {
     public  static double[] fc = new double[]{0,  1, 0};
     public static double lateralMult = 1.7;
     public static double  kV = 0.03;
-    public static double kVTheta = 0.3;
+    public static double kVTheta = 0.6;
     public static double kA = 0;
 
 
@@ -124,13 +124,14 @@ public class MPCPathGen extends LinearOpMode {
 
         dashboard = FtcDashboard.getInstance();
         Telemetry telemetry = new MultipleTelemetry(this.telemetry, dashboard.getTelemetry());
-        telemetry.addData("updated",  "v19");
+        telemetry.addData("updated",  "v30");
         telemetry.update();
         drawField(new Pose2d(0,0,0), inputs);
 
 
         waitForStart();
         while(opModeIsActive()){
+            timer.reset();
             double startTime = timer.milliseconds();
             pose = localizer.getPoseEstimate();
             inputs = new float[]{(float) pose.getX(), (float) pose.getY(), (float) getHeading(),
@@ -175,7 +176,7 @@ public class MPCPathGen extends LinearOpMode {
             float[] normedInputs = normalizeInputs(inputs);
 
 
-            timer.reset();
+
 
             interpreter.run(normedInputs, outputs);
 
@@ -267,7 +268,7 @@ public class MPCPathGen extends LinearOpMode {
         return new float[] {outputs[1]*30, -outputs[0]*30, (float) (outputs[2]*3.1415)};
     }
     private MappedByteBuffer loadModelFile() throws IOException {
-        String modelPath = "v19.tflite";
+        String modelPath = "v30.tflite";
         AssetFileDescriptor fileDescriptor =
                 hardwareMap.appContext.getAssets().openFd(modelPath);
         FileInputStream inputStream =
@@ -303,7 +304,7 @@ public class MPCPathGen extends LinearOpMode {
         normInputs[8] = inputs[6]/72;
         normInputs[9] = inputs[7]/72;
         normInputs[10] = (float) (Math.sin(inputs[8]));
-        normInputs[11] = (float) (Math.sin(inputs[8]));
+        normInputs[11] = (float) (Math.cos(inputs[8]));
         normInputs[12] = inputs[9];
         return normInputs;
     }

@@ -174,7 +174,7 @@ end
 %plot(1:N+1, d(1:N+1,3))
 
 % Create MAT file
-save('v22','d')
+save('v30','d')
 
 
 function returnState = mecanumStateFcn(x, u)  %u is xvel, yvel, thetavel (relative to  body)
@@ -211,7 +211,7 @@ function c = stageCost(stage,x,u, stageParam)
     distanceToGoal = posErr;
 
     posWeight = 150;
-    angWeight = 4000;
+    angWeight = 10000;
     trackingCost = posWeight * posErr^2 + angWeight * angErr^2;
     strafeCost = u(2)^2 * 0;
     

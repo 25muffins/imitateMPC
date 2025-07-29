@@ -1,8 +1,8 @@
 #    This file was created by
 #    MATLAB Deep Learning Toolbox Converter for TensorFlow Models.
-#    28-Jul-2025 19:56:17
+#    29-Jul-2025 15:02:32
 
-import v19Network.model
+import v24Network.model
 import os
 
 def load_model(load_weights=True, debug=False):

@@ -1,2 +1,2 @@
-load("v19Network.mat")
-exportNetworkToTensorFlow(imitateMPCNetwork, 'v19Network')
+load("v30Network.mat")
+exportNetworkToTensorFlow(imitateMPCNetwork, 'v30Network')
