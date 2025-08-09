@@ -1,4 +1,4 @@
-load("really good.mat") %v22 has better angles, really good has better path following, take v22
+load("v30Network.mat") %v22 has better angles, really good has better path following, take v22
 % Creates the MAT file 'InputDataFileImLKA.mat' based on the value of
 % 'isRandom'
 
@@ -133,9 +133,9 @@ for ct= 1:1e0
         %plot(i, u(3), 'ro')
         %u = u*64.2455;
         x0 = velStateFcn(x0, u);
-        %%if rand<0.1
-        %   x0(3) = -0.5;
-        %end
+        if rand<0.1
+           x0(3) = -0.3;
+        end
         %x0 = mecanumStateFcn(x0, u);
         testData(i,:) =  [x0(:)', u(:)', goalswitch];
         

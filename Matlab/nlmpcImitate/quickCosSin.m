@@ -1,4 +1,4 @@
-v30 = load('v30.mat');
+v30 = load('last test.mat');
 
 
 v30d = v30.d;
@@ -12,4 +12,4 @@ for i = 1:s(1)
         sin(v30d(i,17)), cos(v30d(i,17))];
 end
 
-save('v30CosSin','d')
+save('ltCosSin','d')
