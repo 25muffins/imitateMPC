@@ -56,12 +56,12 @@ public class MPCPathGen extends LinearOpMode {
 //    public static double brSpeed = 0;
 //    public static double frSpeed = 0;
 
-    public static double speed = 6;
+    public static double speed = 10;
     public static double speedX = 1;
     public static double speedY = 1;
     public static double speedTheta = 1;
-    public static double speed2 = 6;
-    public static double distCutoff = 1;
+    public static double speed2 = 10;
+    public static double distCutoff = 15;
 
     //for tuning feedforward
 //    public static float veloX = 0;
@@ -69,14 +69,14 @@ public class MPCPathGen extends LinearOpMode {
 //    public static float veloTheta = 0;
 
 
-    public static float[] goal1 = {10, -10, 2};
-    public static float[] goal2 = {20,-20, 2};
+    public static float[] goal1 = {0, -35, 2};
+    public static float[] goal2 = {70,-35, 2};
     public static float[] startPos = {0,0,0};
     public  static double[] fc = new double[]{0,  1, 0};
     public static double lateralMult = 1.7;
     public static double  kV = 0.03;
-    public static double kVTheta = 0.6;
-    public static double kA = 0;
+    public static double kVTheta = 0.4;
+    public static double kA = -0.02;
 
 
     @Override
@@ -126,7 +126,7 @@ public class MPCPathGen extends LinearOpMode {
         Telemetry telemetry = new MultipleTelemetry(this.telemetry, dashboard.getTelemetry());
         telemetry.addData("updated",  "v30");
         telemetry.update();
-        drawField(new Pose2d(0,0,0), inputs);
+        drawField(new Pose2d(0,0,0), inputs, 0);
 
 
         waitForStart();
@@ -136,7 +136,7 @@ public class MPCPathGen extends LinearOpMode {
             pose = localizer.getPoseEstimate();
             inputs = new float[]{(float) pose.getX(), (float) pose.getY(), (float) getHeading(),
                     goal1[0],  goal1[1], goal1[2],  goal2[0], goal2[1], goal2[2], 0}; //100% just for field drawing
-            drawField(pose, inputs); //field coordinates (weird one)
+            drawField(pose, inputs, goalSwitch); //field coordinates (weird one)
 
 
             //mpc coordinates (normal coordinates)
@@ -212,10 +212,11 @@ public class MPCPathGen extends LinearOpMode {
             float omega = (float) (convertBackOutputs[2] * speed * speedTheta);
 
             //currently broken, not using
-            double dt = 0.01;
-            float ax = (convertBackOutputs[0] - lastVel[0]) / (float) dt;
-            float ay = (convertBackOutputs[1] - lastVel[1]) / (float) dt;
-            float aOmega = (convertBackOutputs[2] - lastVel[2]) / (float) dt;
+            localizer.update();
+            Pose2d poseVelo = Objects.requireNonNull(localizer.getPoseVelocity(), "a");
+            float ax = (float) ((poseVelo.getX()));
+            float ay = (float) ((poseVelo.getY()));
+            float aOmega = 0;//(convertBackOutputs[2] - lastVel[2]);
 
 
             float ffX = (float)(kV * vx + kA * ax);
@@ -246,8 +247,8 @@ public class MPCPathGen extends LinearOpMode {
             bl.setPower(dp.get(1));
             br.setPower(dp.get(2));
             fr.setPower(dp.get(3));
-            localizer.update();
-            Pose2d poseVelo = Objects.requireNonNull(localizer.getPoseVelocity(), "poseVelocity() must not be null. Ensure that the getWheelVelocities() method has been overridden in your localizer.");
+
+
             telemetry.addData("veloX", poseVelo.getX());
             telemetry.addData("veloY", -poseVelo.getY());
             telemetry.addData("veloHeading", poseVelo.getHeading());
@@ -278,17 +279,25 @@ public class MPCPathGen extends LinearOpMode {
         long declaredLength = fileDescriptor.getDeclaredLength();
         return fileChannel.map(FileChannel.MapMode.READ_ONLY, startOffset, declaredLength);
     }
-    public void drawField(Pose2d pose, float[] inputs){
+    public void drawField(Pose2d pose, float[] inputs, float gs){
         TelemetryPacket packet = new TelemetryPacket();
         Canvas fieldOverlay = packet.fieldOverlay();
         DashboardUtil.drawRobot(fieldOverlay, pose);
         fieldOverlay.setStroke(COLOR_INACTIVE_TRAJECTORY);
-        DashboardUtil.drawSampledPath(fieldOverlay, new Path(new PathSegment(
-                new LineSegment(new Vector2d(inputs[0], inputs[1]),
-                        new Vector2d(goal1[0], goal1[1])))));
-        DashboardUtil.drawSampledPath(fieldOverlay, new Path(new PathSegment(
-                new LineSegment(new Vector2d(goal1[0], goal1[1]),
-                        new Vector2d(goal2[0], goal2[1])))));
+        if(gs == 1){
+            DashboardUtil.drawSampledPath(fieldOverlay, new Path(new PathSegment(
+                    new LineSegment(new Vector2d(inputs[0], inputs[1]),
+                            new Vector2d(goal2[0], goal2[1])))));
+        }
+        else{
+            DashboardUtil.drawSampledPath(fieldOverlay, new Path(new PathSegment(
+                    new LineSegment(new Vector2d(inputs[0], inputs[1]),
+                            new Vector2d(goal1[0], goal1[1])))));
+            DashboardUtil.drawSampledPath(fieldOverlay, new Path(new PathSegment(
+                    new LineSegment(new Vector2d(goal1[0], goal1[1]),
+                            new Vector2d(goal2[0], goal2[1])))));
+        }
+
         dashboard.sendTelemetryPacket(packet);
     }
     public float[] normalizeInputs(float[] inputs){
