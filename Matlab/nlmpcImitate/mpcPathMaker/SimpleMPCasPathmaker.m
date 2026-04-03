@@ -69,11 +69,11 @@ planner.States(3).Max =  6*pi;
 
 
 clf
-rng(800)
+rng(900)
 %clf
 % initialize
 d = zeros(1,32); %rows will automatically fill up
-for ct= 1:5e2
+for ct= 1:1e1
     ct
     x = [0; 0; 2*pi*rand - pi; 0; 0; 0];
     goal1 = [144*rand-72, 144*rand-72, 2*pi*rand - pi,  0, 0, 0];
@@ -174,7 +174,7 @@ end
 %plot(1:N+1, d(1:N+1,3))
 
 % Create MAT file
-save('v30','d')
+save('test','d')
 
 
 function returnState = mecanumStateFcn(x, u)  %u is xvel, yvel, thetavel (relative to  body)

@@ -10,8 +10,8 @@
 %wvels = load('MPCmadePathWVels.mat');
 %wvels2 = load('MPCmadePathWVels2.mat');
 %da = load('MPCDistAngle1.mat');
-v21 = load('v21CosSin.mat');
-v22 = load('v22CosSin.mat');
+v21 = load('v21cossinwithextrasauce.mat');
+v22 = load('v22cossinwithextrasauce.mat');
 
 
 
@@ -30,10 +30,15 @@ size(data)
 divisors =  [72, 72, 3.1415, 30, 30, 3.1415,...  %current (1-6)
     72, 72, 3.1415, 30, 30, 3.1415, 144, 3.1415,...  %goal1 (7-14)
     72, 72, 3.1415, 30, 30, 3.1415, 144, 3.1415,...  %goal2 (15-22)
-    30, 30, 3.1415,... %optimalU (23-26)
-    30, 30, 3.1415... %pastU (27-30)
-    1,...%goalSwitch (31)
-    30, 30, 3.1415, 1, 1, 1, 1, 1, 1];...%vels (32-34)];  
+    30, 30, 3.1415,... %optimalU (23-25)
+    30, 30, 3.1415... %pastU (26-28)
+    1,...%goalSwitch (29)
+    30, 30, 3.1415, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1];...%vels (30-42)];  
+
+%for column = 1:38
+%    data(:,column) = (data(:,column) - mean(data(:,column))) /std(data(:,column));
+%end
+
 
 data = data./divisors;
 
@@ -73,6 +78,7 @@ trainOutput = shuffledTrainData(:,30:32);
 validationInput = validationData(:,[1:2 33:34 7:8 35:36 15:16 37:38 29]);
 validationOutput = validationData(:,30:32);
 
+%[1:2 33:34 13 39:40 21 41:42 29]
 validationCellArray = {validationInput,validationOutput};
 
 %testDataInput = testData(:,[1:3 8:9 11:12 18]);
@@ -83,12 +89,14 @@ testDataOutput = testData(:,30:32);
 rng(3);
 imitateMPCLayers = [
     featureInputLayer(numObs) 
+    %layerNormalizationLayer
     fullyConnectedLayer(450)
     reluLayer
     dropoutLayer(0.2)
     fullyConnectedLayer(300)
     reluLayer
     fullyConnectedLayer(200)
+    layerNormalizationLayer
     reluLayer
     fullyConnectedLayer(100)
     reluLayer
@@ -126,7 +134,7 @@ imitateMPCNetwork = trainnet( ...
     @customLossWeightedMAE, ...
     options);
 
-save("v30Network", "imitateMPCNetwork", "testDataInput","testDataOutput")
+save("testN", "imitateMPCNetwork", "testDataInput","testDataOutput")
 
 function loss = customLossWeightedMAE(Y, T)
     xVelErr = mean(abs(Y(1,:) - T(1,:)), 'all');
