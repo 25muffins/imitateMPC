@@ -528,10 +528,6 @@ def main():
     attn_targets = make_attention_targets(goalswitch)
 
 
-    (Xq_tr, Xq_val, Xw_tr, Xw_val,
-     Y_tr, Y_val, Yat_tr, gs_val) = temporal_split(
-        query_norm, wp_norm, target_norm, attn_targets, goalswitch
-    )
 
     (Xq_tr, Xq_val, Xw_tr, Xw_val,
      Y_tr, Y_val, Yat_tr, gs_val) = temporal_split(
