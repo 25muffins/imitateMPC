@@ -8,14 +8,15 @@ import os
 matlab_files = ['v21cossinwithextrasauce.mat',
                'v22cossinwithextrasauce.mat']
 
-ALPHA = 0.1 #this is just so softmax doesn't equal 1,0
+ALPHA = 0.05 #this is just so softmax doesn't equal 1,0
 VAL_PERCENT = 0.15 #15% validation data
 HIDDEN_NEURONS = 64
 EPOCHS        = 120
 BATCH_SIZE    = 512
 LR_INITIAL    = 1e-3
-LR_DROP_EPOCH = 50       # halve LR here — matches your MATLAB schedule
-LAMBDA_ATTN   = 0.1      # weight of attention supervision loss
+LR_DROP_EPOCH = 50       # same as MATLAB
+LAMBDA_ATTN   = 0.1     # weight of attention supervision loss
+SAVE_PATH = 'il_mpc_attention.tflite'
 
 def load_data(mat_files):
     parts = []
@@ -44,7 +45,6 @@ def extract_features(data):
     goalswitch = data[:, [28]]  #goalswitch
     target = data[:, [29, 30, 31]]  # ideal vx, vy, omega
 
-
     query = np.concatenate([x_y, sin_cos_th, vel, goalswitch], axis=1)
     goal1 = np.concatenate([goal1_xy, sin_cos_g1], axis=1)
     goal2= np.concatenate([goal2_xy, sin_cos_g2], axis=1)
@@ -53,10 +53,10 @@ def extract_features(data):
     return  query, waypoints, past_u, goalswitch, target
 
 def normalize(currentState, waypoints, past_u, target):
-    state_norm = currentState / np.array([72, 72, 1, 1, 30, 30, np.pi, 1])
-    wp_norm = waypoints / np.array([72, 72, 1, 1])
-    past_norm = past_u / np.array([30, 30, np.pi])
-    target_norm = target / np.array([30, 30, np.pi])
+    state_norm = (currentState / np.array([72, 72, 1, 1, 30, 30, np.pi, 1])).astype(np.float32)
+    wp_norm = (waypoints / np.array([72, 72, 1, 1])).astype(np.float32)
+    past_norm = (past_u / np.array([30, 30, np.pi])).astype(np.float32)
+    target_norm = (target / np.array([30, 30, np.pi])).astype(np.float32)
 
     return state_norm, wp_norm, past_norm, target_norm
 
@@ -66,8 +66,8 @@ def make_attention_targets(goalswitch):
     gs = goalswitch.ravel()
     targets = np.where(
         gs[:, None] == 0,
+        [[1 - ALPHA, ALPHA]],
         [[ALPHA, 1 - ALPHA]],
-        [[1 - ALPHA, ALPHA]]
     ).astype(np.float32)
     return targets  # (N, 2)
 
@@ -110,7 +110,6 @@ class ILMPCAttentionPolicy(tf.keras.Model):
                                          name='W_v')
         self.scale = tf.math.sqrt(tf.cast(hidden, tf.float32))
 
-        # Output head: 2*hidden -> 3
         self.fc1 = tf.keras.layers.Dense(hidden, activation='relu',
                                          name='fc1')
         self.fc2 = tf.keras.layers.Dense(3, name='fc2')
@@ -277,9 +276,9 @@ def evaluate(model, Xq_val, Xw_val, Y_val, gs_val):
     print(f"RMSE — vx:{rmse[0]:.4f}  vy:{rmse[1]:.4f}  "
           f"omega:{rmse[2]:.4f}")
     print(f"\nAttn accuracy:    {attn_acc:.3f}  (target > 0.85)")
-    print(f"Active weight:    {active_w.mean():.3f}  (target ~{ALPHA})")
+    print(f"Active weight:    {active_w.mean():.3f}  (target ~{1 - ALPHA})")
     print(f"Inactive weight:  {inactive_w.mean():.3f}  "
-          f"(target ~{1 - ALPHA})")
+          f"(target ~{ALPHA})")
     print(f"Weight std:       [{std_w[0]:.3f}, {std_w[1]:.3f}]  "
           f"(> 0.15 = dynamic)")
 
@@ -296,12 +295,289 @@ def evaluate(model, Xq_val, Xw_val, Y_val, gs_val):
     return {'mae': mae, 'rmse': rmse, 'attn_acc': attn_acc,
             'active_weight': active_w.mean()}
 
+def plot_training(history):
+    fig, ax = plt.subplots(2, 2, figsize=(12, 8))
+    ax[0, 0].plot(history['loss_track'])
+    ax[0, 0].set_title('Tracking loss (weighted MAE)')
+    ax[0, 0].set_xlabel('Epoch')
 
-data = load_data(matlab_files)
-query, waypoints, past_u, goalswitch, target = extract_features(data)
-query_norm, wp_norm, past_norm, target_norm = normalize(query, waypoints, past_u, goalswitch)
-attention_targets = make_attention_targets(goalswitch)
-(Xq_tr, Xq_val, Xw_tr, Xw_val,
-     Y_tr, Y_val, Yat_tr, gs_val) = temporal_split(
-        query_norm, wp_norm, target_norm, attention_targets, goalswitch
+    ax[0, 1].plot(history['loss_attn'], color='coral')
+    ax[0, 1].set_title('Attention supervision loss (KL)')
+    ax[0, 1].set_xlabel('Epoch')
+
+    ax[1, 0].plot(history['val_mae'], color='steelblue')
+    ax[1, 0].set_title('Validation weighted MAE')
+    ax[1, 0].set_xlabel('Epoch')
+
+    ax[1, 1].plot(history['attn_acc'], color='green')
+    ax[1, 1].axhline(0.85, color='gray', ls='--', label='Target 0.85')
+    ax[1, 1].set_title('Attention goal accuracy')
+    ax[1, 1].set_xlabel('Epoch')
+    ax[1, 1].set_ylim(0, 1)
+    ax[1, 1].legend()
+
+    plt.tight_layout()
+    plt.savefig('training_curves.pdf', bbox_inches='tight', dpi=150)
+    plt.close()
+    print("Saved: training_curves.pdf")
+
+
+def plot_attention_trajectory(model, Xq_val, Xw_val,
+                              gs_val, n=20):
+    n = min(n, len(Xq_val))
+    _, w = model([Xq_val[:n], Xw_val[:n]], return_weights=True)
+    w = w.numpy()
+    gs = gs_val[:n].ravel()
+    t = np.arange(n)
+
+    fig, axes = plt.subplots(2, 1, figsize=(11, 6), sharex=True)
+
+    axes[0].fill_between(t, 0, 1,
+                         where=(gs < 0.5), alpha=0.1, color='steelblue')
+    axes[0].fill_between(t, 0, 1,
+                         where=(gs > 0.5), alpha=0.1, color='coral')
+    axes[0].plot(t, w[:, 0], color='steelblue', lw=2,
+                 label='Attention → goal1')
+    axes[0].plot(t, w[:, 1], color='coral', lw=2,
+                 label='Attention → goal2')
+    axes[0].axhline(0.5, color='gray', lw=0.5, ls='--')
+    axes[0].set_ylabel('Attention weight')
+    axes[0].set_ylim(-0.05, 1.05)
+    axes[0].legend()
+    axes[0].set_title('Learned attention tracks active navigation goal')
+
+    axes[1].step(t, gs, where='post', color='purple', lw=1.5)
+    axes[1].set_ylabel('Active goal')
+    axes[1].set_xlabel('Timestep')
+    axes[1].set_ylim(-0.2, 1.2)
+    axes[1].set_yticks([0, 1])
+    axes[1].set_yticklabels(['goal1', 'goal2'])
+
+    plt.tight_layout()
+    plt.savefig('attention_trajectory.pdf', bbox_inches='tight',
+                dpi=150)
+    plt.close()
+    print("Saved: attention_trajectory.pdf  (Figure 3)")
+
+
+def plot_attention_heatmap(model, Xq_val, Xw_val, gs_val,
+                           n=300):
+    """Figure 4 — weight distribution and heatmap."""
+    n = min(n, len(Xq_val))
+    _, w = model([Xq_val[:n], Xw_val[:n]], return_weights=True)
+    w = w.numpy()
+    gs = gs_val[:n].ravel()
+
+    active_w = np.where(gs < 0.5, w[:, 0], w[:, 1])
+    inactive_w = np.where(gs < 0.5, w[:, 1], w[:, 0])
+
+    fig, axes = plt.subplots(1, 2, figsize=(12, 4))
+
+    im = axes[0].imshow(w.T, aspect='auto', cmap='YlOrRd',
+                        vmin=0, vmax=1)
+    axes[0].set_yticks([0, 1])
+    axes[0].set_yticklabels(['goal1', 'goal2'])
+    axes[0].set_xlabel('Sample index')
+    axes[0].set_title('Attention weights\n'
+                      '(varied = learning; flat = not learning)')
+    plt.colorbar(im, ax=axes[0])
+
+    axes[1].hist(active_w, bins=30, alpha=0.7, color='teal',
+                 label=f'Active (μ={active_w.mean():.2f})')
+    axes[1].hist(inactive_w, bins=30, alpha=0.7, color='coral',
+                 label=f'Inactive (μ={inactive_w.mean():.2f})')
+    axes[1].axvline(ALPHA, color='gray', ls='--',
+                    label=f'Target ({ALPHA})')
+    axes[1].set_xlabel('Attention weight')
+    axes[1].set_ylabel('Count')
+    axes[1].set_title('Active vs inactive goal weights')
+    axes[1].legend()
+
+    plt.tight_layout()
+    plt.savefig('attention_heatmap.pdf', bbox_inches='tight', dpi=150)
+    plt.close()
+    print("Saved: attention_heatmap.pdf     (Figure 4)")
+
+
+def convert_to_tflite(model, Xq_tr, Xw_tr):
+    """
+    INT8 quantized TFLite with representative dataset calibration.
+    Inputs:  query (1,8), waypoints (1,2,4)
+    Output:  velocities (1,3)
+    """
+    print(f"\nConverting to TFLite...")
+
+    @tf.function(input_signature=[
+        tf.TensorSpec(shape=[1, 8], dtype=tf.float32),
+        tf.TensorSpec(shape=[1, 2, 4], dtype=tf.float32),
+    ])
+    def serving_fn(query, waypoints):
+        out, _ = model([query, waypoints])
+        return out
+
+    n_cal = min(500, len(Xq_tr))
+    cal_idx = np.random.choice(len(Xq_tr), n_cal, replace=False)
+
+    def representative_dataset():
+        for i in cal_idx:
+            yield [Xq_tr[i:i + 1], Xw_tr[i:i + 1]]
+
+    converter = tf.lite.TFLiteConverter.from_concrete_functions(
+        [serving_fn.get_concrete_function()]
     )
+    converter.optimizations = [tf.lite.Optimize.DEFAULT]
+    converter.representative_dataset = representative_dataset
+    converter.target_spec.supported_ops = [
+        tf.lite.OpsSet.TFLITE_BUILTINS_INT8
+    ]
+    converter.inference_input_type = tf.float32
+    converter.inference_output_type = tf.float32
+
+    tflite_model = converter.convert()
+    with open(SAVE_PATH, 'wb') as f:
+        f.write(tflite_model)
+    print(f"  Saved: {SAVE_PATH}  ({len(tflite_model) / 1024:.1f} KB)")
+
+    # Verify quantization error
+    interp = tf.lite.Interpreter(model_content=tflite_model)
+    interp.allocate_tensors()
+    ind = interp.get_input_details()
+    oud = interp.get_output_details()
+
+    errors = []
+    for i in cal_idx[:50]:
+        tf_out, _ = model([Xq_tr[i:i + 1], Xw_tr[i:i + 1]])
+        interp.set_tensor(ind[0]['index'], Xq_tr[i:i + 1])
+        interp.set_tensor(ind[1]['index'], Xw_tr[i:i + 1])
+        interp.invoke()
+        tfl_out = interp.get_tensor(oud[0]['index'])
+        errors.append(np.abs(tf_out.numpy() - tfl_out).mean())
+
+    qerr = np.mean(errors)
+    print(f"  Quantization MAE: {qerr:.5f}  "
+          f"({'OK' if qerr < 0.01 else 'HIGH — recheck calibration'})")
+    return tflite_model
+
+
+class MLPBaseline(tf.keras.Model):
+    def __init__(self):
+        super().__init__()
+        # query(8) + waypoints_flat(8) = 16 input features
+        self.net = tf.keras.Sequential([
+            tf.keras.layers.Dense(450, activation='relu',
+                                  input_shape=(16,)),
+            tf.keras.layers.Dropout(0.2),
+            tf.keras.layers.Dense(300, activation='relu'),
+            tf.keras.layers.Dense(200, activation='relu'),
+            tf.keras.layers.LayerNormalization(),
+            tf.keras.layers.Dense(100, activation='relu'),
+            tf.keras.layers.Dense(45, activation='relu'),
+            tf.keras.layers.Dense(3),
+            tf.keras.layers.Activation('tanh')
+        ])
+
+    def call(self, inputs):
+        query, waypoints = inputs
+        wp_flat = tf.reshape(waypoints, [-1, 8])
+        return self.net(tf.concat([query, wp_flat], axis=-1))
+
+
+def train_baseline(Xq_tr, Xw_tr, Y_tr, Xq_val, Xw_val, Y_val):
+    print("\nTraining MLP baseline for ablation comparison...")
+    baseline = MLPBaseline()
+    opt = tf.keras.optimizers.Adam(LR_INITIAL, epsilon=1e-8)
+
+    @tf.function
+    def step(Xq, Xw, Y):
+        with tf.GradientTape() as tape:
+            p = baseline([Xq, Xw])
+            err = tf.abs(p - Y)
+            loss = (1.0 * tf.reduce_mean(err[:, 0]) +
+                    1.0 * tf.reduce_mean(err[:, 1]) +
+                    20.0 * tf.reduce_mean(err[:, 2]))
+        g = tape.gradient(loss, baseline.trainable_variables)
+        opt.apply_gradients(zip(g, baseline.trainable_variables))
+        return loss
+
+    for epoch in range(EPOCHS):
+        if epoch == LR_DROP_EPOCH:
+            opt.learning_rate.assign(LR_INITIAL * 0.5)
+        idx = np.random.permutation(len(Xq_tr))
+        for i in range(0, len(idx), BATCH_SIZE):
+            b = idx[i:i + BATCH_SIZE]
+            step(Xq_tr[b], Xw_tr[b], Y_tr[b])
+
+    vp = baseline([Xq_val, Xw_val]).numpy()
+    err = np.abs(vp - Y_val)
+    mae = (1.0 * err[:, 0].mean() + 1.0 * err[:, 1].mean() +
+           20.0 * err[:, 2].mean())
+    print(f"  Baseline val_mae: {mae:.4f}")
+    return baseline, mae
+
+
+def main():
+    tf.random.set_seed(42)
+    np.random.seed(42)
+
+    print("IL-MPC Attention Policy")
+    print("=" * 50)
+
+    data = load_data(matlab_files)
+    query, waypoints, past_u, goalswitch, target = extract_features(data)
+    query_norm, wp_norm, past_norm, target_norm = normalize(query, waypoints, past_u, goalswitch)
+    attn_targets = make_attention_targets(goalswitch)
+
+
+    (Xq_tr, Xq_val, Xw_tr, Xw_val,
+     Y_tr, Y_val, Yat_tr, gs_val) = temporal_split(
+        query_norm, wp_norm, target_norm, attn_targets, goalswitch
+    )
+
+    (Xq_tr, Xq_val, Xw_tr, Xw_val,
+     Y_tr, Y_val, Yat_tr, gs_val) = temporal_split(
+        query_norm, wp_norm, target_norm, attn_targets, goalswitch
+    )
+
+    #attn
+    model = ILMPCAttentionPolicy(hidden=HIDDEN_NEURONS)
+    _ = model([Xq_tr[:1], Xw_tr[:1]])  # force build
+    model.summary()
+
+    hist = train(model, Xq_tr, Xw_tr, Y_tr, Yat_tr,
+                 Xq_val, Xw_val, Y_val, gs_val)
+
+    metrics = evaluate(model, Xq_val, Xw_val, Y_val, gs_val)
+
+    baseline, base_mae = train_baseline(
+       Xq_tr, Xw_tr, Y_tr, Xq_val, Xw_val, Y_val
+    )
+
+    print(f"\nAblation table:")
+    print(f"  MLP baseline        val_mae = {base_mae:.4f}")
+    print(f"  Attention model     val_mae = {hist['val_mae'][-1]:.4f}")
+    print(f"  Attention accuracy           = {metrics['attn_acc']:.3f}")
+
+    #plot
+    plot_training(hist)
+    plot_attention_trajectory(model, Xq_val, Xw_val, gs_val)
+    plot_attention_heatmap(model, Xq_val, Xw_val, gs_val)
+
+    #convert
+    #convert_to_tflite(model, Xq_tr, Xw_tr)
+
+    print("\nFiles written:")
+    #print(f"  {SAVE_PATH}            — deploy to Control Hub")
+    print(f"  training_curves.pdf")
+    print(f"  attention_trajectory.pdf  — Figure 3")
+    print(f"  attention_heatmap.pdf     — Figure 4")
+
+    # Print what goal1 and goal2 actually look like at goalswitch boundaries
+    mask_switch = np.where(np.diff(goalswitch.ravel()) != 0)[0]
+    for idx in mask_switch[:3]:
+        print(f"Row {idx}: gs={goalswitch[idx,0]:.0f} → {goalswitch[idx+1,0]:.0f}")
+        print(f"  goal1: x={data[idx,6]:.1f}  y={data[idx,7]:.1f}")
+        print(f"  goal2: x={data[idx,14]:.1f}  y={data[idx,15]:.1f}")
+        print(f"  dist1={data[idx,12]:.1f}  dist2={data[idx,20]:.1f}")
+
+if __name__ == '__main__':
+    main()
