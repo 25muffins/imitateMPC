@@ -67,16 +67,26 @@ shuffledTrainData = trainData(shuffleIdx,:);
 %TODO // FIX
 numObs = 13;
 numActions = 3;
-
+%x,  y, theta, xvel, yvel, thetavel,  1-6
+    % goal1x, goal1y, goal1theta,  goal1xvel, goal1yvel,  goal1thetavel,
+    % goal1dist, goal1angle 7-14
+    % goal2x, goal2y, goal2theta,  goal2xvel, goal2yvel,  goal2thetavel,
+    % goal2dist, goal2angle 15-22
+    % optimal u  (x3), past u (x3), goalswitch  23-29
+    % nextxVel nextyVel, nextthetaVel 31,32,33
+    % current sin theta, cos theta 33,34
+    % goal 1 sin theta, cos theta, 35, 36
+    % goal 2 sin theta, cos theta, 37, 38
+    
 %TODO // FIX
 %trainInput = shuffledTrainData(:,[1:3 8:9 11:12 18]);
 %trainOutput = shuffledTrainData(:,14:17);
 %validationInput = validationData(:,[1:3 8:9 11:12 18]);
 %validationOutput = validationData(:,14:17);
 trainInput = shuffledTrainData(:,[1:2 33:34 7:8 35:36 15:16 37:38 29]);
-trainOutput = shuffledTrainData(:,30:32);
+trainOutput = shuffledTrainData(:,23:25);
 validationInput = validationData(:,[1:2 33:34 7:8 35:36 15:16 37:38 29]);
-validationOutput = validationData(:,30:32);
+validationOutput = validationData(:,23:25);
 
 %[1:2 33:34 13 39:40 21 41:42 29]
 validationCellArray = {validationInput,validationOutput};
@@ -84,7 +94,7 @@ validationCellArray = {validationInput,validationOutput};
 %testDataInput = testData(:,[1:3 8:9 11:12 18]);
 %testDataOutput = testData(:,14:17);
 testDataInput = testData(:,[1:2 33:34 7:8 35:36 15:16 37:38 29]);
-testDataOutput = testData(:,30:32);
+testDataOutput = testData(:,23:25);
 
 rng(3);
 imitateMPCLayers = [

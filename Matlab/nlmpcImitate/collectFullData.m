@@ -42,7 +42,7 @@ Data = zeros(1e5,18);
 
 trajLength = zeros(500, 1);
 trajLength(1) = 1;
-for ct = 1:5e2 %500 * 20 = 10,000 so it should take ~50 mins
+for ct = 1:2e0 %500 * 20 = 10,000 so it should take ~50 mins
     ct
    [x0, u0, goal1, goal2, ref] = randomDataNLMPC;
    %we dont actually need u0 randomized
@@ -67,11 +67,11 @@ for ct = 1:5e2 %500 * 20 = 10,000 so it should take ~50 mins
         x0(3) = wrapToPi(x0(3));
         [u, ~,  info] = nlmpcmove(nlobj, x0, u0, ref(i+1:a(1), :), [], nloptions);
         u;
-        relativeX0 = [x0(1) - originalX0(1), x0(2) - originalX0(2), x0(3)];
+        relativeX0 = [x0(1) - originalX0(1), x0(2) - originalX0(2), x0(3) - originalX0(3)];
         distAngle1  = [dist1, angle1, goal1(3)];
         distAngle2 = [dist2,angle2, goal2(3)];
         Data(trajLength(ct,1)+i-1,:) = [relativeX0(:)', u0(:)', distAngle1(:)', distAngle2(:)', u(:)',  goalswap];
-        %u0 = u';
+        u0 = u';
         x0 = mecanumStateFcn(x0, u, Ts, rb, nx);
    end
     
@@ -79,7 +79,7 @@ end
 
 
 % Create MAT file
-save('linearNoU01','Data', 'trajLength')
+save('DataWHistoryV1','Data', 'trajLength')
 
 
 function xnext = mecanumStateFcn(x, u, Ts, rb, nx)
