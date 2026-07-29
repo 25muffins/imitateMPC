@@ -72,8 +72,8 @@ clf
 rng(901)
 %clf
 % initialize
-d = zeros(1,32); %rows will automatically fill up
-for ct= 1:2e0
+d = zeros(1,110); %rows will automatically fill up
+for ct= 1:5e2
     ct
     x = [0; 0; 0; 0; 0; 0];
     goal1 = [144*rand-72, 144*rand-72, 2*pi*rand - pi,  0, 0, 0];
@@ -142,10 +142,15 @@ for ct= 1:2e0
     % current sin theta, cos theta 33,34
     % goal 1 sin theta, cos theta, 35, 36
     % goal 2 sin theta, cos theta, 37, 38
-    %total size = 32
+    % history: [x,y, theta, sintheta, costheta, xvel, yvel, thetavel,
+    % goalswitch] x 8 = 72
+    %total size = 38 + 72
     
     goalswitch = 0;
+    historyMatrix = zeros(1,72);
+    lastHistoryRow = zeros(1,9);
     for  i = 1:a(1)
+        historyMatrix = [historyMatrix(10:end), lastHistoryRow];
         currentPos = xTrackHistory(i,:);
     
         dist1 = sqrt((currentPos(1)-goal1(1))^2 +  (currentPos(2)-goal1(2))^2);
@@ -175,14 +180,16 @@ for ct= 1:2e0
         currentPos(3) = wrapToPi(currentPos(3));
         g1(3) = wrapToPi(g1(3));
         g2(3) = wrapToPi(g2(3));
-        
-        d((ct-1) * a(1) + i,:) =  [currentPos(:)',  g1(:)', g2(:)', optimalU(:)', lastU(:)', goalswitch, nextVels];
+        sinEmbeddings = [sin(currentPos(3)); cos(currentPos(3)); sin(goal1(3)); cos(goal1(3)); sin(goal2(3)); cos(goal2(3))];
+        lastHistoryRow = [currentPos(1:3), sinEmbeddings(1:2)', currentPos(4:6), goalswitch];
+
+        d((ct-1) * a(1) + i,:) =  [currentPos(:)',  g1(:)', g2(:)', optimalU(:)', lastU(:)', goalswitch, nextVels, sinEmbeddings', historyMatrix];
     end
 end
 %plot(1:N+1, d(1:N+1,3))
 
 % Create MAT file
-save('TestWithHistory','d')
+save('HistoryDataV1','d')
 
 
 function returnState = mecanumStateFcn(x, u)  %u is xvel, yvel, thetavel (relative to  body)
