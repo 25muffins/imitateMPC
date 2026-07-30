@@ -138,7 +138,7 @@ for ct= 1:1000
     % goal2x, goal2y, goal2theta,  goal2xvel, goal2yvel,  goal2thetavel,
     % goal2dist, goal2angle 15-22
     % optimal u  (x3), past u (x3), goalswitch  23-29
-    % nextxVel nextyVel, nextthetaVel 31,32,33
+    % nextxVel nextyVel, nextthetaVel 30,31,32
     % current sin theta, cos theta 33,34
     % goal 1 sin theta, cos theta, 35, 36
     % goal 2 sin theta, cos theta, 37, 38
