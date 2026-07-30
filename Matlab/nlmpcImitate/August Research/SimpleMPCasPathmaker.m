@@ -69,11 +69,11 @@ planner.States(3).Max =  6*pi;
 
 
 clf
-rng(901)
+rng(904)
 %clf
 % initialize
 d = zeros(1,110); %rows will automatically fill up
-for ct= 1:5e2
+for ct= 1:1000
     ct
     x = [0; 0; 0; 0; 0; 0];
     goal1 = [144*rand-72, 144*rand-72, 2*pi*rand - pi,  0, 0, 0];
@@ -81,10 +81,10 @@ for ct= 1:5e2
     %x = [0; 0; -3; 0; 0; 0];
     %goal1 = [-72,  0, 3,0,0 0];
     %goal2 = [60, -10, -3, 0, 0, 0];
-    goal1Candidates = [goal1(3) - 2*pi, goal1(3) + 2*pi, goal1(3), goal1(3) - 4*pi, goal1(3) + 4*pi];
-    bc1 = findBestCandidate(goal1Candidates, x(3));
-    goal2Candidates = [goal2(3) - 2*pi, goal2(3) + 2*pi, goal2(3), goal2(3) - 4*pi, goal2(3) + 4*pi];
-    bc2 = findBestCandidate(goal2Candidates, bc1);
+    %goal1Candidates = [goal1(3) - 2*pi, goal1(3) + 2*pi, goal1(3), goal1(3) - 4*pi, goal1(3) + 4*pi];
+    bc1 = goal1(3);%findBestCandidate(goal1Candidates, x(3));
+    %goal2Candidates = [goal2(3) - 2*pi, goal2(3) + 2*pi, goal2(3), goal2(3) - 4*pi, goal2(3) + 4*pi];
+    bc2 = goal2(3);%findBestCandidate(goal2Candidates, bc1);
     
     goal1(3) = bc1;
     goal2(3) = bc2;
@@ -166,12 +166,12 @@ for ct= 1:5e2
         else  lastU =  uHistory(i-1,:);
         end
         
-        if ((goalswitch ~= 1) & (dist1 <= 6))
-           goalswitch = 1;
-        end
-        %if(i >= (a(1)/2))
+        %if ((goalswitch ~= 1) & (dist1 <= 6))
         %   goalswitch = 1;
         %end
+        if(i >= (a(1)/2))
+           goalswitch = 1;
+        end
 
         if(i==a(1)) nextVels = [0,0,0];
         else nextVels = xTrackHistory(i+1, 4:6);
@@ -189,7 +189,7 @@ end
 %plot(1:N+1, d(1:N+1,3))
 
 % Create MAT file
-save('HistoryDataV1','d')
+save('HistoryDataV2','d')
 
 
 function returnState = mecanumStateFcn(x, u)  %u is xvel, yvel, thetavel (relative to  body)
@@ -226,14 +226,14 @@ function c = stageCost(stage,x,u, stageParam)
     distanceToGoal = posErr;
 
     posWeight = 1;
-    angWeight = 1;
+    angWeight = 30;
     trackingCost = posWeight * posErr^2 + angWeight * angErr^2;
-    strafeCost = u(2)^2 * -0.1;
+    strafeCost = u(2)^2 * 0;
     
     forwardReward = u(1)^2 * 0;
 
     velCost = 1;
-    velocityCost = velCost * velErr^2 + 50 * angVelErr^2;
+    velocityCost = velCost * velErr^2 + 10 * angVelErr^2;
     controlCost = 0.1 * sum(u.^2);
     
     % Combine costs
@@ -247,12 +247,12 @@ function c = terminalCost(stage, x,u, stageParam)
     angVelErr = abs(x(6)  - goal(6)); 
     
     positionCost = 10 * posErr^2;      
-    orientationCost = 1 * angErr^2;    
+    orientationCost = 45 * angErr^2;    
     velocityCost = 1 * velErr^2;       
     angularVelCost = 1 * angVelErr^2; 
     
     % Combine terminal costs
-    c = 2*(positionCost + orientationCost + velocityCost + angularVelCost);
+    c = 5*(positionCost + orientationCost + velocityCost + angularVelCost);
 end
 function bestCandidate = findBestCandidate(candidates, startTheta)
     lowestDist = 100;

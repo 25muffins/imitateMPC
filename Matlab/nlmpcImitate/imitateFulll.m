@@ -13,7 +13,8 @@
 v21 = load('v21cossinwithextrasauce.mat');
 v22 = load('v22cossinwithextrasauce.mat');
 
-
+dataWHistory1 = load('HistoryDataV1.mat');
+%dataWHistory2 = load('HistoryDataV2.mat');
 
 %DataF = f.Data(~all(f.Data==0, 2), :);
 %DataF2 = f2.Data(~all(f2.Data==0, 2), :);
@@ -22,7 +23,9 @@ v22 = load('v22cossinwithextrasauce.mat');
 
 %[sys,Vx] = createModelForMPCImLKA;
 %[mpcobj,initialState] = createMPCobjImLKA(sys);
-data = [v21.d; v22.d];
+%data = [v21.d; v22.d];
+data = [dataWHistory1.d];
+data = data(:,1:42);
 size(data)
 
 %normalize
@@ -60,12 +63,12 @@ trainDataIdx = setdiff(1:totalRows,randomIdx);
 trainData = data(trainDataIdx,:);
 
 numTrainDataRows = size(trainData,1);
-%shuffle train data (for some reason)
+%shuffle train data
 shuffleIdx = randperm(numTrainDataRows);
 shuffledTrainData = trainData(shuffleIdx,:);
 
 %TODO // FIX
-numObs = 10;
+numObs = 13;
 numActions = 3;
 %x,  y, theta, xvel, yvel, thetavel,  1-6
     % goal1x, goal1y, goal1theta,  goal1xvel, goal1yvel,  goal1thetavel,
@@ -79,30 +82,30 @@ numActions = 3;
     % goal 2 sin theta, cos theta, 37, 38
 
 %TODO // FIX
-%trainInput = shuffledTrainData(:,[1:2 33:34 7:8 35:36 15:16 37:38 29]);
+trainInput = shuffledTrainData(:,[1:2 33:34 7:8 35:36 15:16 37:38 29]);
+trainOutput = shuffledTrainData(:,23:25);
+validationInput = validationData(:,[1:2 33:34 7:8 35:36 15:16 37:38 29]);
+validationOutput = validationData(:,23:25);
+%trainInput = shuffledTrainData(:,[1:3 7:9 15:17 29]);
 %trainOutput = shuffledTrainData(:,23:25);
-%validationInput = validationData(:,[1:2 33:34 7:8 35:36 15:16 37:38 29]);
+%validationInput = validationData(:,[1:3 7:9 15:17 29]);
 %validationOutput = validationData(:,23:25);
-trainInput = shuffledTrainData(:,[1:3 7:9 15:17 29]);
-trainOutput = shuffledTrainData(:,30:32);
-validationInput = validationData(:,[1:3 7:9 15:17 29]);
-validationOutput = validationData(:,30:32);
 
 %[1:2 33:34 13 39:40 21 41:42 29]
 validationCellArray = {validationInput,validationOutput};
 
 %testDataInput = testData(:,[1:3 8:9 11:12 18]);
 %testDataOutput = testData(:,14:17);
-testDataInput = testData(:,[1:3 7:9 15:17 29]);
-testDataOutput = testData(:,30:32);
+testDataInput = testData(:,[1:2 33:34 7:8 35:36 15:16 37:38 29]);
+testDataOutput = testData(:,23:25);
 
-rng(3);
+rng(1);
 imitateMPCLayers = [
     featureInputLayer(numObs) 
     %layerNormalizationLayer
     fullyConnectedLayer(450)
     reluLayer
-    dropoutLayer(0.2)
+    %dropoutLayer(0.2)
     fullyConnectedLayer(300)
     reluLayer
     fullyConnectedLayer(200)

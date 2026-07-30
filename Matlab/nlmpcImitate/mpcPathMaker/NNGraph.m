@@ -44,7 +44,7 @@ clf
 for ct= 1:1e0
     ct
     x = [0; 0; 0; 0; 0; 0];
-    goal1 = [-15,  -20, -3,0,0 0];
+    goal1 = [-15,  -20, -2,0,0 0];
     goal2 = [10, 10, 0, 0, 0, 0];
 
     goal1Candidates = [goal1(3) - 2*pi, goal1(3) + 2*pi, goal1(3), goal1(3) - 4*pi, goal1(3) + 4*pi];
@@ -106,9 +106,9 @@ for ct= 1:1e0
         %72, 72, 3.14,...
         %72, 72, 3.14,...
         %1];
-    divisors =  [72, 72, 3.14,...
-        72, 72, 3.14,...
-        72, 72, 3.14,...
+    divisors =  [72, 72, 1, 1,...
+        72, 72, 1, 1,...
+        72, 72, 1, 1,...
         1];
     x0 = [0;0;0;0;0;0];
     goalswitch = 0;
@@ -126,8 +126,8 @@ for ct= 1:1e0
         end
 
         %inputData = [x0(1:3)', goal1(1:3), goal2(1:3), goalswitch];
-        %inputData = [x0(1:2)', sin(x0(3)), cos(x0(3)), goal1(1:2), sin(goal1(3)), cos(goal1(3)), goal2(1:2), sin(goal2(3)), cos(goal2(3)) goalswitch];
-        inputData = [x0(1:3)', goal1(1:3), goal2(1:3), goalswitch];
+        inputData = [x0(1:2)', sin(x0(3)), cos(x0(3)), goal1(1:2), sin(goal1(3)), cos(goal1(3)), goal2(1:2), sin(goal2(3)), cos(goal2(3)) goalswitch];
+        %inputData = [x0(1:3)', goal1(1:3), goal2(1:3), goalswitch];
         inputData = inputData ./ divisors;
         Ypredict = predict(imitateMPCNetwork, inputData);
         u = Ypredict';
@@ -138,7 +138,7 @@ for ct= 1:1e0
         %%if rand<0.1
         %   x0(3) = -0.3;
         %end
-        x0 = velStateFcn(x0, u);
+        x0 = mecanumStateFcn(x0, u);
         testData(i,:) =  [x0(:)', u(:)', goalswitch];
         
     end
