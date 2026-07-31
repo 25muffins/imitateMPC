@@ -15,6 +15,7 @@ EPOCHS        = 120
 BATCH_SIZE    = 512
 LR_INITIAL    = 0.001
 LR_DROP_EPOCH = 50       # same as MATLAB
+v_n = 30 #stands for velocity normaliztion: if using relative coords, 30, if using global coords, 30*sqrt2
 SAVE_PATH = 'il_mpc_attention.tflite'
 
 def load_data(mat_files):
@@ -44,20 +45,29 @@ def extract_features(data):
     goalswitch = data[:, [28]]  #goalswitch
     target = data[:, [22, 23, 24]]  # ideal vx, vy, omega
 
+    # each step: [x, y, theta, sin_th, cos_th, vx, vy, omega, goalswitch]
+    history = data[:, 38:110].reshape(-1, 8, 9)  # (N, 8, 9)
+    # recency weights: oldest=1/8, newest=8/8
+    recency = np.arange(1, 9) / 8.0
+    recency = recency[np.newaxis, :, np.newaxis]  # (1, 8, 1)
+    history = history * recency  # (N, 8, 9)
+
     query = np.concatenate([x_y, sin_cos_th, vel, goalswitch], axis=1)
     goal1 = np.concatenate([goal1_xy, sin_cos_g1], axis=1)
     goal2= np.concatenate([goal2_xy, sin_cos_g2], axis=1)
     waypoints = np.stack([goal1, goal2], axis=1)
 
-    return  query, waypoints, past_u, goalswitch, target
+    return query, waypoints, past_u, goalswitch, target, history
 
-def normalize(currentState, waypoints, past_u, target):
-    state_norm = (currentState / np.array([72, 72, 1, 1, 30, 30, np.pi, 1])).astype(np.float32)
+def normalize(currentState, waypoints, past_u, target, history):
+    state_norm = (currentState / np.array([72, 72, 1, 1, v_n, v_n, np.pi, 1])).astype(np.float32)
     wp_norm = (waypoints / np.array([72, 72, 1, 1])).astype(np.float32)
-    past_norm = (past_u / np.array([30 * math.sqrt(1), 30* math.sqrt(1), np.pi])).astype(np.float32)
-    target_norm = (target / np.array([30* math.sqrt(1), 30* math.sqrt(1), np.pi])).astype(np.float32)
+    past_norm = (past_u / np.array([v_n, v_n, np.pi])).astype(np.float32)
+    target_norm = (target / np.array([v_n, v_n, np.pi])).astype(np.float32)
 
-    return state_norm, wp_norm, past_norm, target_norm
+    hist_div = np.array([72, 72, np.pi, 1, 1, v_n, v_n, np.pi, 1])
+    hist_norm = (history / hist_div).astype(np.float32)  # (N, 8, 9)
+    return state_norm, wp_norm, past_norm, target_norm, hist_norm
 
 
 def temporal_split(query_norm, wp_norm, target_norm,
@@ -74,8 +84,9 @@ def temporal_split(query_norm, wp_norm, target_norm,
 
     print(f"Train: {len(Xq_tr)}  Val: {len(Xq_val)}")
     return Xq_tr, Xq_val, Xw_tr, Xw_val, Y_tr, Y_val, Yat_tr, gs_val
+
 def random_split(query_norm, wp_norm, target_norm,
-                 goalswitch,
+                 goalswitch, hist_norm,
                  test_frac=0.05):
 
     N = len(query_norm)
@@ -91,12 +102,13 @@ def random_split(query_norm, wp_norm, target_norm,
     Xq_tr,   Xq_val  = query_norm[train_idx],  query_norm[val_idx]
     Xw_tr,   Xw_val  = wp_norm[train_idx],     wp_norm[val_idx]
     Y_tr,    Y_val   = target_norm[train_idx],  target_norm[val_idx]
+    Xh_tr, Xh_val = hist_norm[train_idx], hist_norm[val_idx]
     gs_val           = goalswitch[val_idx]
 
     print(f"Train: {len(train_idx)}  Val: {len(val_idx)}  "
           f"Test: {n_test}")
     return (Xq_tr, Xq_val, Xw_tr, Xw_val,
-            Y_tr, Y_val, gs_val)
+            Y_tr, Y_val, gs_val, Xh_tr, Xh_val)
 
 
 def convert_to_tflite(model, Xq_tr, Xw_tr):
@@ -231,12 +243,12 @@ def main():
     np.random.seed(42)
 
     data = load_data(matlab_files)
-    query, waypoints, past_u, goalswitch, target = extract_features(data)
-    query_norm, wp_norm, past_norm, target_norm = normalize(query, waypoints, past_u, target)
+    query, waypoints, past_u, goalswitch, target, history = extract_features(data)
+    query_norm, wp_norm, past_norm, target_norm, hist_norm = normalize(query, waypoints, past_u, target, history)
 
     (Xq_tr, Xq_val, Xw_tr, Xw_val,
-     Y_tr, Y_val, gs_val) = random_split(
-        query_norm, wp_norm, target_norm, goalswitch
+     Y_tr, Y_val, gs_val, Xh_tr, Xh_val) = random_split(
+        query_norm, wp_norm, target_norm, goalswitch, hist_norm,
     )
 
     baseline, base_mae = train_baseline(
