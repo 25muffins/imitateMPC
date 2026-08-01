@@ -155,5 +155,5 @@ function loss = customLossWeightedMAE(Y, T)
     thetaVelErr = mean(abs(Y(3,:) - T(3,:)), 'all');
 
     % Weighted MAE
-    loss = 1 * xVelErr + 1 * yVelErr + 20 * thetaVelErr;  % emphasize theta velocity
+    loss = 1 * xVelErr + 1 * yVelErr + 1 * thetaVelErr;  % emphasize theta velocity
 end

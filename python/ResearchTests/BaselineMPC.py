@@ -199,7 +199,7 @@ def train_baseline(Xq_tr, Xw_tr, Y_tr, Xq_val, Xw_val, Y_val):
             err = tf.abs(p - Y)
             loss = (1.0 * tf.reduce_mean(err[:, 0]) +
                     1.0 * tf.reduce_mean(err[:, 1]) +
-                    1.0 * tf.reduce_mean(err[:, 2]))
+                    1.0 * tf.reduce_mean(err[:, 2]))/3  #mean
         g = tape.gradient(loss, baseline.trainable_variables)
         optimizer.apply_gradients(zip(g, baseline.trainable_variables))
         return loss
@@ -220,10 +220,12 @@ def train_baseline(Xq_tr, Xw_tr, Y_tr, Xq_val, Xw_val, Y_val):
 
     vp = baseline([Xq_val, Xw_val]).numpy()
     err = np.abs(vp - Y_val)
-    mae = (1.0 * err[:, 0].mean() + 1.0 * err[:, 1].mean() +
-           20.0 * err[:, 2].mean())
-    print(f"  Baseline val_mae: {mae:.4f}")
-    return baseline, mae
+    #mae = (1.0 * err[:, 0].mean() + 1.0 * err[:, 1].mean() +
+    #       1.0 * err[:, 2].mean())
+    mae = err.mean()
+    mse = np.mean((vp - Y_val) ** 2)
+    print(f"  val_mae: {mae:.4f}  |  val_mse: {mse:.4f}")
+    return baseline, mae, mse
 
 
 def main():
@@ -239,12 +241,12 @@ def main():
         query_norm, wp_norm, target_norm, goalswitch
     )
 
-    baseline, base_mae = train_baseline(
+    baseline, base_mae, base_mse = train_baseline(
        Xq_tr, Xw_tr, Y_tr, Xq_val, Xw_val, Y_val
     )
 
     print(f"\nAblation table:")
-    print(f"  MLP baseline        val_mae = {base_mae:.4f}")
+    print(f"  MLP baseline        val_mae = {base_mae:.4f}  |  val_mse = {base_mse:.4f}")
 
 if __name__ == '__main__':
     main()

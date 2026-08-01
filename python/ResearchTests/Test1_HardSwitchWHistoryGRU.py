@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 import os
 
+
 matlab_files = ['HistoryDataV1.mat',
               'HistoryDataV2.mat']
 
@@ -14,6 +15,7 @@ VAL_PERCENT = 0.15 #15% validation data
 EPOCHS        = 120
 BATCH_SIZE    = 512
 LR_INITIAL    = 0.001
+HIDDEN_NEURONS = 64
 LR_DROP_EPOCH = 50       # same as MATLAB
 v_n = 30 #stands for velocity normaliztion: if using relative coords, 30, if using global coords, 30*sqrt2
 SAVE_PATH = 'il_mpc_attention.tflite'
@@ -99,16 +101,16 @@ def random_split(query_norm, wp_norm, target_norm,
     test_idx = idx[n_val:n_val + n_test]
     train_idx = idx[n_val + n_test:]
 
-    Xq_tr,   Xq_val  = query_norm[train_idx],  query_norm[val_idx]
-    Xw_tr,   Xw_val  = wp_norm[train_idx],     wp_norm[val_idx]
-    Y_tr,    Y_val   = target_norm[train_idx],  target_norm[val_idx]
+    Xq_tr, Xq_val = query_norm[train_idx], query_norm[val_idx]
+    Xw_tr, Xw_val = wp_norm[train_idx], wp_norm[val_idx]
+    Y_tr, Y_val = target_norm[train_idx], target_norm[val_idx]
     Xh_tr, Xh_val = hist_norm[train_idx], hist_norm[val_idx]
-    gs_val           = goalswitch[val_idx]
+    gs_tr, gs_val = goalswitch[train_idx], goalswitch[val_idx]
 
     print(f"Train: {len(train_idx)}  Val: {len(val_idx)}  "
           f"Test: {n_test}")
     return (Xq_tr, Xq_val, Xw_tr, Xw_val,
-            Y_tr, Y_val, gs_val, Xh_tr, Xh_val)
+            Y_tr, Y_val, gs_tr, gs_val, Xh_tr, Xh_val)
 
 
 def convert_to_tflite(model, Xq_tr, Xw_tr):
@@ -171,49 +173,82 @@ def convert_to_tflite(model, Xq_tr, Xw_tr):
     return tflite_model
 
 
-class MLPBaseline(tf.keras.Model):
-    def __init__(self):
+class HardswitchWithHistoryGRU(tf.keras.Model):
+    def __init__(self, hidden=HIDDEN_NEURONS):
         super().__init__()
-        # current (4) + g1 (4) + g2 (4) + gs = 13 input features
-        self.net = tf.keras.Sequential([
-            tf.keras.layers.Dense(450, activation='relu',
-                                  input_shape=(13,)),
-            #tf.keras.layers.Dropout(0.2),
-            tf.keras.layers.Dense(300, activation='relu'),
-            tf.keras.layers.Dense(200, activation='relu'),
-            tf.keras.layers.LayerNormalization(),
-            tf.keras.layers.Dense(100, activation='relu'),
-            tf.keras.layers.Dense(45, activation='relu'),
-            tf.keras.layers.Dense(3),
-            tf.keras.layers.Activation('tanh')
-        ])
+
+        # current state encoder
+        self.input_enc = tf.keras.Sequential([
+            tf.keras.layers.Dense(hidden, activation='relu',
+                                  input_shape=(7,))
+        ], name='query_enc')
+        # history encoder
+        self.history_enc = tf.keras.layers.GRU(
+            hidden,
+            return_sequences=False,
+            reset_after=True,
+            recurrent_activation='sigmoid',
+            activation='tanh',
+            implementation=1,
+            name='history_enc'
+        )
+        # single waypoint encoder, select active waypoint
+        self.wp_enc = tf.keras.layers.Dense(
+            hidden, activation='relu', name='wp_enc'
+        )
+        # output
+        self.fc1 = tf.keras.layers.Dense(hidden, activation='relu', name='fc1')
+        self.fc2 = tf.keras.layers.Dense(3, name='fc2')
+        self.out_act = tf.keras.layers.Activation('tanh', name='tanh')
 
     def call(self, inputs):
-        query, waypoints = inputs
-        wp_flat = tf.reshape(waypoints, [-1, 8])
-        inputFeatures = tf.concat([tf.gather(query, [0,1,2,3,7], axis = 1), wp_flat], axis = -1)
-        return self.net(inputFeatures)
-        #return self.net(tf.concat([query, wp_flat], axis=-1))
+        query, waypoints, history, goalswitch = inputs
+
+        #shaping input (x, y, sin, cos, vx, vy, vomega), so 7 total
+        inputFeatures = tf.gather(query, [0, 1, 2, 3, 4, 5, 6], axis=1)
+
+        active_wp = tf.where(
+            goalswitch < 0.5,
+            waypoints[:, 0, :],  # (B, 4)
+            waypoints[:, 1, :]  # (B, 4)
+        )
+        #encoder blocks
+        input_enc  = self.input_enc(inputFeatures)  # (B, 64)
+        h_enc  = self.history_enc(history)  # (B, 64)
+        wp_enc = self.wp_enc(active_wp)  # (B, 64)
+
+        #just concat all together
+        combined = tf.concat([input_enc, h_enc, wp_enc], axis=-1)  # (B, 192)
+        out = self.out_act(self.fc2(self.fc1(combined)))   # (B, 3)
+
+        # hard weights for logging
+        hard_w = tf.concat([
+            1 - goalswitch,   # (B, 1)
+            goalswitch        # (B, 1)
+        ], axis=-1)           # (B, 2)
+
+        return out, hard_w
 
 
-def train_baseline(Xq_tr, Xw_tr, Y_tr, Xq_val, Xw_val, Y_val):
+def train(Xq_tr, Xw_tr, Xh_tr, gs_tr, Y_tr,  #train
+          Xq_val, Xw_val, Xh_val, gs_val, Y_val): #val
     print("\nTraining MLP baseline for ablation comparison...")
-    baseline = MLPBaseline()
+    network = HardswitchWithHistoryGRU()
     optimizer = tf.keras.optimizers.Adam(
         learning_rate=1e-3,
         epsilon=1e-8,
         weight_decay=1e-4       # L2Regularization
     )
     @tf.function
-    def step(Xq, Xw, Y):
+    def step(Xq, Xw, Xh, gs, Y):
         with tf.GradientTape() as tape:
-            p = baseline([Xq, Xw])
+            p, hard_w = network([Xq, Xw, Xh, gs])
             err = tf.abs(p - Y)
             loss = (1.0 * tf.reduce_mean(err[:, 0]) +
                     1.0 * tf.reduce_mean(err[:, 1]) +
-                    1.0 * tf.reduce_mean(err[:, 2]))
-        g = tape.gradient(loss, baseline.trainable_variables)
-        optimizer.apply_gradients(zip(g, baseline.trainable_variables))
+                    1.0 * tf.reduce_mean(err[:, 2]))/3 #was going to do custom weighted mae, but normal mae is ok for now
+        g = tape.gradient(loss, network.trainable_variables)
+        optimizer.apply_gradients(zip(g, network.trainable_variables))
         return loss
 
     for epoch in range(EPOCHS):
@@ -222,20 +257,24 @@ def train_baseline(Xq_tr, Xw_tr, Y_tr, Xq_val, Xw_val, Y_val):
 
         if epoch == LR_DROP_EPOCH:
             optimizer.learning_rate.assign(LR_INITIAL * 0.5)
-        idx = np.random.permutation(len(Xq_tr))
+
+        idx = np.random.permutation(len(Xq_tr)) #alr random, but just in case
         for i in range(0, len(idx), BATCH_SIZE):
             b = idx[i:i + BATCH_SIZE]
-            lossList.append(step(Xq_tr[b], Xw_tr[b], Y_tr[b]))
+            lossList.append(step(Xq_tr[b], Xw_tr[b], Xh_tr[b], gs_tr[b], Y_tr[b]))
         if epoch % 10 == 0:
             print(f"  Epoch: {epoch}/{EPOCHS}  |  LOSS: {np.mean(lossList)}")
 
 
-    vp = baseline([Xq_val, Xw_val]).numpy()
+    vp, hard_w = network([Xq_val, Xw_val, Xh_val, gs_val])
+    vp = vp.numpy()
     err = np.abs(vp - Y_val)
-    mae = (1.0 * err[:, 0].mean() + 1.0 * err[:, 1].mean() +
-           20.0 * err[:, 2].mean())
-    print(f"  Baseline val_mae: {mae:.4f}")
-    return baseline, mae
+    #mae = (1.0 * err[:, 0].mean() + 1.0 * err[:, 1].mean() +
+    #        1.0 * err[:, 2].mean())
+    mae = err.mean()
+    mse = np.mean((vp - Y_val) ** 2)
+    print(f"  val_mae: {mae:.4f}  |  val_mse: {mse:.4f}")
+    return network, mae, mse
 
 
 def main():
@@ -247,16 +286,17 @@ def main():
     query_norm, wp_norm, past_norm, target_norm, hist_norm = normalize(query, waypoints, past_u, target, history)
 
     (Xq_tr, Xq_val, Xw_tr, Xw_val,
-     Y_tr, Y_val, gs_val, Xh_tr, Xh_val) = random_split(
+     Y_tr, Y_val, gs_tr, gs_val, Xh_tr, Xh_val) = random_split(
         query_norm, wp_norm, target_norm, goalswitch, hist_norm,
     )
 
-    baseline, base_mae = train_baseline(
-       Xq_tr, Xw_tr, Y_tr, Xq_val, Xw_val, Y_val
+
+    network, mae, mse = train(
+       Xq_tr, Xw_tr, Xh_tr, gs_tr, Y_tr, Xq_val, Xw_val, Xh_val, gs_val, Y_val
     )
 
     print(f"\nAblation table:")
-    print(f"  MLP baseline        val_mae = {base_mae:.4f}")
+    print(f"  Hard switch with history GRU        val_mae = {mae:.4f}  |  val_mse = {mse:.4f}")
 
 if __name__ == '__main__':
     main()
