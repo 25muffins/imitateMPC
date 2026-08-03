@@ -189,7 +189,7 @@ end
 %plot(1:N+1, d(1:N+1,3))
 
 % Create MAT file
-save('HistoryDataV2','d')
+save('LessStrictFollowingV1','d')
 
 
 function returnState = mecanumStateFcn(x, u)  %u is xvel, yvel, thetavel (relative to  body)
@@ -246,7 +246,7 @@ function c = terminalCost(stage, x,u, stageParam)
     velErr = norm(x(4:5)) - norm(goal(4:5)); 
     angVelErr = abs(x(6)  - goal(6)); 
     
-    positionCost = 10 * posErr^2;      
+    positionCost = 3 * posErr^2;      
     orientationCost = 45 * angErr^2;    
     velocityCost = 1 * velErr^2;       
     angularVelCost = 1 * angVelErr^2; 
