@@ -10,6 +10,7 @@ import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.geometry.Pose2d;
 import com.acmerobotics.roadrunner.geometry.Vector2d;
+import com.acmerobotics.roadrunner.kinematics.MecanumKinematics;
 import com.acmerobotics.roadrunner.path.LineSegment;
 import com.acmerobotics.roadrunner.path.Path;
 import com.acmerobotics.roadrunner.path.PathSegment;
@@ -34,6 +35,7 @@ import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequenceRunner.COLOR_INACTIVE_TRAJECTORY;
@@ -49,9 +51,9 @@ public class FourInputTest1to4 extends LinearOpMode {
     public static float[] goal1    = {10, -10, 0};  // x, y, heading
     public static float[] goal2    = {20, -20, 0};
     public static float[] startPos = {0, 0, 0};
-    public static float GOAL_SWITCH_DIST = 2.0f;    // inches
+    public static float GOAL_SWITCH_DIST = 5.0f;    // inches
     public static float VELOCITY_SCALE   = 1.0f;    // scale factor on output velocities
-    public static String MODEL_FILE      = "Test1_Baseline.tflite";
+    public static String MODEL_FILE      = "Test1_HardSwitch.tflite";
     private static final float POS_DIV   = 72.0f;
     private static final float VEL_DIV   = 30.0f;
     private static final float ANG_DIV   = (float) Math.PI;
@@ -63,6 +65,8 @@ public class FourInputTest1to4 extends LinearOpMode {
     private float prevVx    = 0;
     private float prevVy    = 0;
     private float prevOmega = 0;
+    public static double  kV = 0.35;
+    public static double kVTheta = 0.15;
 
     @SuppressLint("DefaultLocale")
     @Override
@@ -85,7 +89,7 @@ public class FourInputTest1to4 extends LinearOpMode {
 
         fl.setDirection(DcMotorSimple.Direction.REVERSE);
         bl.setDirection(DcMotorSimple.Direction.REVERSE);
-        br.setDirection(DcMotorSimple.Direction.REVERSE);
+        br.setDirection(DcMotorSimple.Direction.FORWARD);
         fr.setDirection(DcMotorSimple.Direction.FORWARD);
 
         Interpreter interpreter;
@@ -110,7 +114,7 @@ public class FourInputTest1to4 extends LinearOpMode {
                 RevHubOrientationOnRobot.UsbFacingDirection.UP
         )));
         imu.resetYaw();
-        localizer = new TwoWheelTrackingLocalizer(fl, bl,
+        localizer = new TwoWheelTrackingLocalizer(bl, fr,
                 () -> AngleUnit.normalizeRadians(
                         imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS)),
                 () -> imu.getRobotAngularVelocity(AngleUnit.RADIANS).zRotationRate);
@@ -246,22 +250,30 @@ public class FourInputTest1to4 extends LinearOpMode {
 
 
             //mecanum velocity
-            float flPower = VELOCITY_SCALE * (outVx - outVy - outOmega);
-            float blPower = VELOCITY_SCALE * (outVx + outVy - outOmega);
-            float brPower = VELOCITY_SCALE * (outVx - outVy + outOmega);
-            float frPower = VELOCITY_SCALE * (outVx + outVy + outOmega);
+//            float flPower = VELOCITY_SCALE * (outVx - outVy - outOmega);
+//            float blPower = VELOCITY_SCALE * (outVx + outVy - outOmega);
+//            float brPower = VELOCITY_SCALE * (outVx - outVy + outOmega);
+//            float frPower = VELOCITY_SCALE * (outVx + outVy + outOmega);
 
+
+            List<Double> drivePowers = getDrivePower(new Pose2d(outVx * kV, outVy * kV, outOmega * kVTheta));
+//            List<Double> drivePowers = getDrivePower(new Pose2d(1, 1, 0.1)); //testing
+            double flPower = drivePowers.get(0);
+            double blPower = drivePowers.get(1);
+            double brPower = drivePowers.get(2);
+            double frPower = drivePowers.get(3);
             //normalize if any power exceeds 1.0
+//            float maxPower = Math.max(1.0f,
+//                    Math.max(Math.abs(flPower),
+//                            Math.max(Math.abs(blPower),
+//                                    Math.max(Math.abs(brPower), Math.abs(frPower)))));
             float maxPower = 1;
             fl.setPower(flPower / maxPower);
             bl.setPower(blPower / maxPower);
             br.setPower(brPower / maxPower);
             fr.setPower(frPower / maxPower);
 
-            telemetry.addData("max power", Math.max(1.0f,
-                    Math.max(Math.abs(flPower),
-                            Math.max(Math.abs(blPower),
-                                    Math.max(Math.abs(brPower), Math.abs(frPower))))));
+            telemetry.addData("max power", maxPower);
 
             telemetry.addData("inferenceTime (ms)", inferenceTime);
             telemetry.addData("goalSwitch",          goalSwitch);
@@ -342,5 +354,8 @@ public class FourInputTest1to4 extends LinearOpMode {
                 new LineSegment(new Vector2d(g1x, g1y),
                         new Vector2d(g2x, g2y)))));
         dashboard.sendTelemetryPacket(packet);
+    }
+    private List<Double> getDrivePower(Pose2d pose2d) {
+        return MecanumKinematics.robotToWheelVelocities(pose2d, 12, 12, 1);
     }
 }

@@ -46,7 +46,7 @@ public class LocalizationTest extends LinearOpMode {
 
         fl.setDirection(DcMotorSimple.Direction.REVERSE);
         bl.setDirection(DcMotorSimple.Direction.REVERSE);
-        br.setDirection(DcMotorSimple.Direction.REVERSE);
+        br.setDirection(DcMotorSimple.Direction.FORWARD);
         fr.setDirection(DcMotorSimple.Direction.FORWARD);
         imu = hardwareMap.get(IMU.class, "imu");
         imu.initialize(new IMU.Parameters(new RevHubOrientationOnRobot(
@@ -54,7 +54,7 @@ public class LocalizationTest extends LinearOpMode {
                 RevHubOrientationOnRobot.UsbFacingDirection.UP
         )));
         imu.resetYaw();
-        localizer = new TwoWheelTrackingLocalizer(fl, bl,
+        localizer = new TwoWheelTrackingLocalizer(bl, fr,
                 () -> AngleUnit.normalizeRadians(imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS)),
                 () -> imu.getRobotAngularVelocity(AngleUnit.RADIANS).zRotationRate); //parallel, perp, orientation, velocity
 
