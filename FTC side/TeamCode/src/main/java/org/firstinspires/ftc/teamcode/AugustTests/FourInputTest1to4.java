@@ -67,7 +67,12 @@ public class FourInputTest1to4 extends LinearOpMode {
     @SuppressLint("DefaultLocale")
     @Override
     public void runOpMode() throws InterruptedException {
-
+        //config so i dont forget:
+        //control hub
+        //0, fl
+        //1, br
+        //2, bl
+        //3, fr
         DcMotorEx fl = hardwareMap.get(DcMotorEx.class, "fl");
         DcMotorEx bl = hardwareMap.get(DcMotorEx.class, "bl");
         DcMotorEx br = hardwareMap.get(DcMotorEx.class, "br");
