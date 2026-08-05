@@ -25,8 +25,6 @@ import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.hardware.VoltageSensor;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
-import org.firstinspires.ftc.teamcode.drive.DriveConstants;
 import org.firstinspires.ftc.teamcode.util.DashboardUtil;
 import org.tensorflow.lite.Interpreter;
 
@@ -269,7 +267,7 @@ public class MPCPathGen extends LinearOpMode {
         return new float[] {outputs[1]*30, -outputs[0]*30, (float) (outputs[2]*3.1415)};
     }
     private MappedByteBuffer loadModelFile() throws IOException {
-        String modelPath = "v30.tflite";
+        String modelPath = "oldTFLiteModels/v30.tflite";
         AssetFileDescriptor fileDescriptor =
                 hardwareMap.appContext.getAssets().openFd(modelPath);
         FileInputStream inputStream =

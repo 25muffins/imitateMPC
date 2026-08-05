@@ -20,7 +20,7 @@ LR_DROP_EPOCH = 50       # same as MATLAB
 LAMBDA_ATTN = 0.1
 ALPHA = 0.05
 v_n = 30 #stands for velocity normaliztion: if using relative coords, 30, if using global coords, 30*sqrt2
-SAVE_PATH = 'il_mpc_attention.tflite'
+SAVE_PATH = 'Test4_crossATTN.tflite'
 
 def load_data(mat_files):
     parts = []
@@ -46,7 +46,7 @@ def extract_features(data):
     # probably dont need
     past_u = data[:, [25, 26, 27]]  # past xvel, yvel, omega
 
-    goalswitch = data[:, [28]]  #goalswitch
+    goalswitch = data[:, [28]].astype(np.float32)  #goalswitch
     target = data[:, [22, 23, 24]]  # ideal vx, vy, omega
 
     # each step: [x, y, theta, sin_th, cos_th, vx, vy, omega, goalswitch]
@@ -127,31 +127,41 @@ def random_split(query_norm, wp_norm, target_norm,
             Y_tr, Y_val, gs_tr, gs_val, Xh_tr, Xh_val, Yat_tr)
 
 
-def convert_to_tflite(model, Xq_tr, Xw_tr):
+def convert_to_tflite(model, Xq_tr, Xw_tr, Xh_tr, gs_tr):
     """
     INT8 quantized TFLite with representative dataset calibration.
     Inputs:  query (1,8), waypoints (1,2,4)
     Output:  velocities (1,3)
     """
+    _, _, _ = model([Xq_tr[:1], Xw_tr[:1], Xh_tr[:1], gs_tr[:1]])
+
     print(f"\nConverting to TFLite...")
 
     @tf.function(input_signature=[
-        tf.TensorSpec(shape=[1, 8], dtype=tf.float32),
-        tf.TensorSpec(shape=[1, 2, 4], dtype=tf.float32),
+        tf.TensorSpec(shape=[1, 8], dtype=tf.float32),  # query
+        tf.TensorSpec(shape=[1, 2, 4], dtype=tf.float32),  # waypoints
+        tf.TensorSpec(shape=[1, 8, 9], dtype=tf.float32),  # history
+        tf.TensorSpec(shape=[1, 1], dtype=tf.float32),  # goalswitch
     ])
-    def serving_fn(query, waypoints):
-        out, _ = model([query, waypoints])
+    def serving_fn(query, waypoints, history, goalswitch):
+        out, _, _ = model([query, waypoints, history, goalswitch])
         return out
 
-    n_cal = min(500, len(Xq_tr))
-    cal_idx = np.random.choice(len(Xq_tr), n_cal, replace=False)
+    cf = serving_fn.get_concrete_function()
+
+    cal_idx = np.random.choice(len(Xq_tr), min(500, len(Xq_tr)), replace=False)
 
     def representative_dataset():
         for i in cal_idx:
-            yield [Xq_tr[i:i + 1], Xw_tr[i:i + 1]]
+            yield [
+                Xq_tr[i:i + 1],
+                Xw_tr[i:i + 1],
+                Xh_tr[i:i + 1],
+                gs_tr[i:i + 1]
+            ]
 
     converter = tf.lite.TFLiteConverter.from_concrete_functions(
-        [serving_fn.get_concrete_function()]
+        [cf], model
     )
     converter.optimizations = [tf.lite.Optimize.DEFAULT]
     converter.representative_dataset = representative_dataset
@@ -174,9 +184,14 @@ def convert_to_tflite(model, Xq_tr, Xw_tr):
 
     errors = []
     for i in cal_idx[:50]:
-        tf_out, _ = model([Xq_tr[i:i + 1], Xw_tr[i:i + 1]])
+        tf_out, _, _ = model([
+            Xq_tr[i:i+1], Xw_tr[i:i+1],
+            Xh_tr[i:i+1], gs_tr[i:i+1]
+        ])
         interp.set_tensor(ind[0]['index'], Xq_tr[i:i + 1])
         interp.set_tensor(ind[1]['index'], Xw_tr[i:i + 1])
+        interp.set_tensor(ind[2]['index'], Xh_tr[i:i + 1])
+        interp.set_tensor(ind[3]['index'], gs_tr[i:i + 1])
         interp.invoke()
         tfl_out = interp.get_tensor(oud[0]['index'])
         errors.append(np.abs(tf_out.numpy() - tfl_out).mean())
@@ -212,13 +227,15 @@ class crossAttn(tf.keras.Model):
         self.W_v = tf.keras.layers.Dense(hidden, use_bias=False, name='W_v')
         self.scale = tf.math.sqrt(tf.cast(hidden, tf.float32))
         # history encoder for control head
-        self.history_gru = tf.keras.layers.GRU(
-            hidden,
+        self.history_gru = tf.keras.layers.RNN(
+            tf.keras.layers.GRUCell(
+                hidden,
+                reset_after=True,
+                recurrent_activation='sigmoid',
+                activation='tanh',
+            ),
             return_sequences=False,
-            reset_after=True,
-            recurrent_activation='sigmoid',
-            activation='tanh',
-            implementation=1,
+            unroll=True,  # fully unroll — no dynamic ops
             name='history_enc'
         )
 
@@ -346,6 +363,8 @@ def main():
 
     print(f"\nAblation table:")
     print(f"  cross_attn        val_mae = {mae:.4f}  |  val_mse = {mse:.4f}")
+
+    convert_to_tflite(network, Xq_tr, Xw_tr, Xh_tr, gs_tr)
 
 if __name__ == '__main__':
     main()

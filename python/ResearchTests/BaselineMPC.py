@@ -15,7 +15,7 @@ EPOCHS        = 120
 BATCH_SIZE    = 512
 LR_INITIAL    = 0.001
 LR_DROP_EPOCH = 50       # same as MATLAB
-SAVE_PATH = 'il_mpc_attention.tflite'
+SAVE_PATH = 'Test0_Baseline.tflite'
 
 def load_data(mat_files):
     parts = []
@@ -105,25 +105,29 @@ def convert_to_tflite(model, Xq_tr, Xw_tr):
     Inputs:  query (1,8), waypoints (1,2,4)
     Output:  velocities (1,3)
     """
-    print(f"\nConverting to TFLite...")
 
+    _ = model([Xq_tr[:1], Xw_tr[:1]])
+
+    print(f"\nConverting to TFLite...")
     @tf.function(input_signature=[
-        tf.TensorSpec(shape=[1, 8], dtype=tf.float32),
-        tf.TensorSpec(shape=[1, 2, 4], dtype=tf.float32),
+        tf.TensorSpec(shape=[1, 8], dtype=tf.float32),  # query
+        tf.TensorSpec(shape=[1, 2, 4], dtype=tf.float32),  # waypoints
     ])
+
     def serving_fn(query, waypoints):
-        out, _ = model([query, waypoints])
+        out = model([query, waypoints])
         return out
 
-    n_cal = min(500, len(Xq_tr))
-    cal_idx = np.random.choice(len(Xq_tr), n_cal, replace=False)
+    cf = serving_fn.get_concrete_function()
+
+    cal_idx = np.random.choice(len(Xq_tr), min(500, len(Xq_tr)), replace=False)
 
     def representative_dataset():
         for i in cal_idx:
             yield [Xq_tr[i:i + 1], Xw_tr[i:i + 1]]
 
     converter = tf.lite.TFLiteConverter.from_concrete_functions(
-        [serving_fn.get_concrete_function()]
+        [cf], model
     )
     converter.optimizations = [tf.lite.Optimize.DEFAULT]
     converter.representative_dataset = representative_dataset
@@ -146,7 +150,7 @@ def convert_to_tflite(model, Xq_tr, Xw_tr):
 
     errors = []
     for i in cal_idx[:50]:
-        tf_out, _ = model([Xq_tr[i:i + 1], Xw_tr[i:i + 1]])
+        tf_out = model([Xq_tr[i:i + 1], Xw_tr[i:i + 1]])
         interp.set_tensor(ind[0]['index'], Xq_tr[i:i + 1])
         interp.set_tensor(ind[1]['index'], Xw_tr[i:i + 1])
         interp.invoke()
@@ -247,6 +251,8 @@ def main():
 
     print(f"\nAblation table:")
     print(f"  MLP baseline        val_mae = {base_mae:.4f}  |  val_mse = {base_mse:.4f}")
+
+    convert_to_tflite(baseline, Xq_tr, Xw_tr)
 
 if __name__ == '__main__':
     main()
