@@ -33,10 +33,19 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import android.os.Environment;
+
+import java.io.File;
+import java.io.FileWriter;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
 
 import static org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequenceRunner.COLOR_INACTIVE_TRAJECTORY;
 
@@ -46,6 +55,7 @@ public class FourInputTest1to4 extends LinearOpMode {
     IMU imu;
     TwoWheelTrackingLocalizer localizer;
     private ElapsedTime timer = new ElapsedTime();
+    private ElapsedTime runTimer = new ElapsedTime();
     private FtcDashboard dashboard;
 
     public static float[] goal1    = {10, -10, 0};  // x, y, heading
@@ -67,6 +77,11 @@ public class FourInputTest1to4 extends LinearOpMode {
     private float prevOmega = 0;
     public static double  kV = 0.35;
     public static double kVTheta = 0.15;
+    // ── metrics storage ───────────────────────────────────────────
+    // each row: [timestamp, relX, relY, heading, vx, vy, omega,
+    //            outVx, outVy, outOmega, posError, thetaError,
+    //            goalSwitch, inferenceTime]
+    private List<float[]> metricsLog = new ArrayList<>();
 
     @SuppressLint("DefaultLocale")
     @Override
@@ -123,15 +138,18 @@ public class FourInputTest1to4 extends LinearOpMode {
         Telemetry telemetry = new MultipleTelemetry(this.telemetry, dashboard.getTelemetry());
 
         float goalSwitch = 0.0f;
-        boolean done     = false;
+        boolean done = false;
 
         waitForStart();
+        runTimer.reset();
         timer.reset();
 
         while (opModeIsActive() && !done) {
 
             localizer.update();
+            float elapsed = (float) runTimer.seconds();
             Pose2d pose    = localizer.getPoseEstimate();
+
             float heading  = (float) getHeading();
             float sinTh    = (float) Math.sin(heading);
             float cosTh    = (float) Math.cos(heading);
@@ -238,6 +256,7 @@ public class FourInputTest1to4 extends LinearOpMode {
             interpreter.runForMultipleInputsOutputs(inputs, outputs);
             double inferenceTime = timer.milliseconds() - startTime;
 
+
             //denormalize
             float outVx = output[0][0] * VEL_DIV;
             float outVy = output[0][1] * VEL_DIV;
@@ -273,6 +292,32 @@ public class FourInputTest1to4 extends LinearOpMode {
             br.setPower(brPower / maxPower);
             fr.setPower(frPower / maxPower);
 
+
+            float activeGoalX = (goalSwitch == 0) ? relG1X : relG2X;
+            float activeGoalY = (goalSwitch == 0) ? relG1Y : relG2Y;
+            float posError = dist(relX, relY, activeGoalX, activeGoalY);
+
+            float crossTrackError = crossTrackError(relX, relY,
+                    relG1X, relG1Y,
+                    relG2X, relG2Y);
+
+            float targetHeading = (goalSwitch == 0) ? goal1[2] : goal2[2];
+            float thetaError    = Math.abs(normalizeAngle(heading - targetHeading));
+
+            float velMag = (float) Math.sqrt(outVx*outVx + outVy*outVy);
+
+            // [time, relX, relY, heading, vx, vy, omega,
+            //  outVx, outVy, outOmega, posError, crossTrackError,
+            //  thetaError, velMag, goalSwitch, inferenceTime]
+            metricsLog.add(new float[]{
+                    elapsed,
+                    relX, relY, heading,
+                    vx, vy, omega,
+                    outVx, outVy, outOmega,
+                    posError, crossTrackError,
+                    thetaError, velMag,
+                    goalSwitch, (float) inferenceTime
+            });
             telemetry.addData("max power", maxPower);
 
             telemetry.addData("inferenceTime (ms)", inferenceTime);
@@ -294,7 +339,117 @@ public class FourInputTest1to4 extends LinearOpMode {
 
             drawField(pose, relX, relY, relG1X, relG1Y, relG2X, relG2Y);
         }
+        saveMetrics();
+        printSummary();
+        telemetry.update();
     }
+    private float dist(float x1, float y1, float x2, float y2) {
+        return (float) Math.sqrt(Math.pow(x2-x1, 2) + Math.pow(y2-y1, 2));
+    }
+
+    private float crossTrackError(float px, float py,
+                                  float ax, float ay,
+                                  float bx, float by) {
+        //perpendicular distance
+        float dx = bx - ax;
+        float dy = by - ay;
+        float len = (float) Math.sqrt(dx*dx + dy*dy);
+        if (len < 1e-6f) return dist(px, py, ax, ay);
+        return Math.abs(dy*px - dx*py + bx*ay - by*ax) / len;
+    }
+
+    private float normalizeAngle(float angle) {
+        while (angle >  Math.PI) angle -= 2 * Math.PI;
+        while (angle < -Math.PI) angle += 2 * Math.PI;
+        return angle;
+    }
+    private void saveMetrics() {
+        String timestamp = new SimpleDateFormat(
+                "yyyyMMdd_HHmmss", Locale.US).format(new Date());
+        String filename  = MODEL_FILE + "_" + timestamp + ".csv";
+
+        File dir  = Environment.getExternalStoragePublicDirectory(
+                Environment.DIRECTORY_DOWNLOADS);
+        File file = new File(dir, filename);
+
+        try {
+            FileWriter writer = new FileWriter(file);
+            writer.write(
+                    "time_s,relX,relY,heading," +
+                            "vx_in,vy_in,omega_in," +
+                            "vx_out,vy_out,omega_out," +
+                            "pos_error,cross_track_error," +
+                            "theta_error,vel_mag," +
+                            "goalswitch,inference_ms\n"
+            );
+
+            for (float[] row : metricsLog) {
+                StringBuilder sb = new StringBuilder();
+                for (int i = 0; i < row.length; i++) {
+                    sb.append(String.format(Locale.US, "%.5f", row[i]));
+                    if (i < row.length - 1) sb.append(",");
+                }
+                sb.append("\n");
+                writer.write(sb.toString());
+            }
+
+            writer.flush();
+            writer.close();
+            telemetry.addData("saved to", file.getAbsolutePath());
+
+        } catch (IOException e) {
+            telemetry.addData("save error", e.getMessage());
+        }
+    }
+
+    private void printSummary() {
+        if (metricsLog.isEmpty()) return;
+
+        int n = metricsLog.size();
+
+        // compute summary stats
+        float totalPosErr   = 0;
+        float totalCrossErr = 0;
+        float totalThetaErr = 0;
+        float totalInfTime  = 0;
+        float maxPosErr     = 0;
+        float maxCrossErr   = 0;
+        float totalDuration = metricsLog.get(n-1)[0];  // last timestamp
+
+        for (float[] row : metricsLog) {
+            float posErr   = row[10];
+            float crossErr = row[11];
+            float thetaErr = row[12];
+            float infTime  = row[15];
+
+            totalPosErr   += posErr;
+            totalCrossErr += crossErr;
+            totalThetaErr += thetaErr;
+            totalInfTime  += infTime;
+
+            if (posErr   > maxPosErr)   maxPosErr   = posErr;
+            if (crossErr > maxCrossErr) maxCrossErr = crossErr;
+        }
+
+        telemetry.addData("── SUMMARY ──────────────", "");
+        telemetry.addData("model", MODEL_FILE);
+        telemetry.addData("duration (s)", String.format(Locale.US, "%.2f", totalDuration));
+        telemetry.addData("steps logged", n);
+        telemetry.addData("avg pos error",
+                String.format(Locale.US, "%.3f in", totalPosErr / n));
+        telemetry.addData("max pos error",
+                String.format(Locale.US, "%.3f in", maxPosErr));
+        telemetry.addData("avg cross-track",
+                String.format(Locale.US, "%.3f in", totalCrossErr / n));
+        telemetry.addData("max cross-track",
+                String.format(Locale.US, "%.3f in", maxCrossErr));
+        telemetry.addData("avg theta error",
+                String.format(Locale.US, "%.3f rad", totalThetaErr / n));
+        telemetry.addData("avg inference",
+                String.format(Locale.US, "%.2f ms", totalInfTime / n));
+        telemetry.update();
+    }
+
     private float[][][] rawHistoryBuf     = new float[1][HISTORY_STEPS][HISTORY_FEATURES];
     private float[][][] weightedHistoryBuf = new float[1][HISTORY_STEPS][HISTORY_FEATURES];
     private void updateHistory(float[] newStep) {
