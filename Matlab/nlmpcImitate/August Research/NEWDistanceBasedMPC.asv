@@ -1,0 +1,248 @@
+function NEWDistanceBasedMPC()
+% Creates the MAT file 'InputDataFileImLKA.mat' based on the value of
+% 'isRandom'
+
+% If isRandom is true (1), then random input data is generated and stored in
+% the 'InputDataFileImLKA.mat' If isRandom is false (0), then input data is
+% generated from the grid formed by changing the values of lateral
+% velocity, yaw angle rate, lateral deviation, relative yaw angle, last
+% steering angle, curvature under the 'variables' section in the script,
+% and stores the data in 'InputDataFileImLKA.mat'
+
+% Copyright 2019 The MathWorks, Inc.
+
+
+% use a different seed such as rng('shuffle') to create differing data
+
+% Generate MPC object.
+Ts = 1;         % Sampling time
+rb = 7.5; % track radius
+maxRev = 300 / 60; %per second
+wheelCircumference = 4.09 * pi;
+
+nu = 3;           % [fr, fl, br, bl]
+nx = 6;           % [x; y; theta; vx, vy, omega]
+ny = 3;
+
+%goal1 = [-72, -50, 0.5,  0, 0, 0];
+%goal2 = [-30, 72, 2, 0, 0, 0];
+%waypoints =  [goal1;  goal2];
+%dist1 = sqrt(goal1(1)^2   + goal1(2^2));
+%dist2 = sqrt((goal1(1) - goal2(1))^2  + (goal1(2) - goal2(2))^2);
+%approximateN = round((dist1+dist2)/10);
+%if mod(approximateN,  2) ==  1
+%    approximateN = approximateN+1;
+%end
+N = 18;
+
+planner = nlmpcMultistage(N, nx, nu);
+planner.Ts = Ts;
+
+
+planner.Model.StateFcn = @mecanumStateFcn;
+planner.Model.IsContinuousTime = false;
+planner.States(3).Min  = -6*pi;
+planner.States(3).Max =  6*pi;
+
+
+%for i = 1:4
+ %   planner.MV(i).Min = -maxRev * wheelCircumference;
+  %  planner.MV(i).Max = maxRev * wheelCircumference;
+%end
+%for i = 2:N
+%    if i == (N/2  +1)
+%        planner.Stages(i).CostFcn = @terminalCost;
+%    else
+%        planner.Stages(i).CostFcn = @stageCost;
+%    end
+%    planner.Stages(i).ParameterLength = 6;
+%    
+%end
+%planner.Stages(N+1).CostFcn = @terminalCost;
+%planner.Stages(N+1).ParameterLength = 6;
+%goal = [1;1;1; 0; 0;  0];
+%simData.StageParameter = repmat(goal', N, 1);
+%simData = getSimulationData(planner, 'TerminalState');
+%simData.TerminalState = goal;
+
+%validateFcns(planner, zeros(nx,1), zeros(nu,1), simData);
+
+
+clf
+rng(901)
+%clf
+% initialize
+d = zeros(1,110); %rows will automatically fill up
+for ct = 1:5
+    ct
+    x = [0;0;0;0;0;0];
+    goal1 = [144*rand-72,...
+             144*rand-72,...
+             2*pi*rand-pi,...
+             0,0,0];
+    goal2 = [144*rand-72,...
+             144*rand-72,...
+             2*pi*rand-pi,...
+             0,0,0];
+    goal1(3) = wrapToPi(goal1(3));
+    goal2(3) = wrapToPi(goal2(3));
+    
+    
+    waypoints = [goal1; goal2];
+    
+    u = zeros(nu,1);
+    
+    planner.MV(1).Min = -30;
+    planner.MV(1).Max = 30;
+    
+    planner.MV(2).Min = -30;
+    planner.MV(2).Max = 30;
+    
+    planner.MV(3).Min = -3.13;
+    planner.MV(3).Max = 3.13;
+    
+    for i = 2:N
+        planner.Stages(i).CostFcn = @stageCost;
+        planner.Stages(i).ParameterLength = 6;
+    end
+    planner.Stages(N+1).CostFcn = @terminalCost;
+    planner.Stages(N+1).ParameterLength = 6;
+    
+    simData = getSimulationData(planner,'TerminalState');
+    
+    Optimization.CustomEqConFcn = @(stage,x,u,stageParam) periodicConstraint(x);
+    
+    xTrackHistory = [];
+    uHistory = [];
+    
+    goalswitch = 0;
+    for k = 1:100
+        dist1 = sqrt((x(1)-goal1(1))^2 + (x(2)-goal1(2))^2);
+        dist2 = sqrt((x(1)-goal2(1))^2 + (x(2)-goal2(2))^2);
+        if dist1 >= 0.5 && goalswitch == 0
+            currentGoal = goal1';
+            goalswitch = 0;
+        else
+            currentGoal = goal2';
+            goalswitch = 1;
+        end
+        fprintf("k=%df switch=%d goal=[%.1f %.1f]\n", ...
+        k, goalswitch, currentGoal(1), currentGoal(2));
+       fprintf("step %d: dist1 = %.3f\n", k, dist1);
+       fprintf("step %d: dist2 = %.3f\n", k, dist2);
+        fprintf("x %d: y = %.3f\n", x(1), x(2));
+        sp = repmat(currentGoal,N+1,1);
+
+        simData.StageParameter = sp;
+        simData.TerminalState = currentGoal;
+
+        [u,~,info] = nlmpcmove(planner,x,u,simData);
+        xTrackHistory = [
+            xTrackHistory;
+            x'
+        ];
+        uHistory = [
+            uHistory;
+            u'
+        ];
+
+        x = mecanumStateFcn(x,u);
+        if goalswitch == 1 && dist2 < 0.5
+            break
+        end
+    end
+    
+    figure
+    hold on
+    plot(1:size(xTrackHistory,1), xTrackHistory(:,3), 'LineWidth', 2)
+    grid on
+    plot(xTrackHistory(:,1),xTrackHistory(:,2),'r')
+    plot(xTrackHistory(:,1),xTrackHistory(:,2),'ro')
+    
+    plot(goal1(1),goal1(2),'bo')
+    plot(goal2(1),goal2(2),'bo')
+    
+    plot(waypoints(:,1),waypoints(:,2),'go')
+  
+
+end
+%plot(1:N+1, d(1:N+1,3))
+
+% Create MAT file
+save('DistanceBasedV1','d')
+
+
+function returnState = mecanumStateFcn(x, u)  %u is xvel, yvel, thetavel (relative to  body)
+    % Forward kinematics matrix (body velocities)
+    J = [1,0,0;
+         0,1,0;
+         0,0,1];
+    A = eye(6);
+    B = 1 * J;
+    first = A * x;
+    second =  B  * u;
+    theta = x(3) + second(3);
+    xvalue = (second(1) * cos(x(3))) -  (second(2) * sin(x(3))); %these  kinematics are flipped
+    yvalue = (second(1) * sin(x(3))) +  (second(2) * cos(x(3)));
+    xvel = [xvalue;
+             yvalue;
+             second(3)];
+    xnext = [xvalue + first(1);
+             yvalue + first(2);
+             theta];
+    %xnext(3) = wrapToPi(xnext(3));
+    %xvel(3) = wrapToPi(xvel(3));
+    returnState  = [xnext; xvel];
+
+end
+function c = stageCost(stage,x,u, stageParam)
+    goal = stageParam;
+    posErr = norm(x(1:2) - goal(1:2));
+    angErr = x(3) - goal(3);
+    velErr = norm(x(4:5)) - norm(goal(4:5)); 
+    angVelErr = abs(x(6)  - goal(6)); 
+    
+
+    distanceToGoal = posErr;
+
+    posWeight = 2;
+    angWeight = 30;
+    trackingCost = posWeight * posErr^2 + angWeight * angErr^2;
+    strafeCost = u(2)^2 * 0;
+    
+    forwardReward = u(1)^2 * 0;
+
+    velCost = 1;
+    velocityCost = velCost * velErr^2 + 10 * angVelErr^2;
+    controlCost = 0.1 * sum(u.^2);
+    
+    % Combine costs
+    c = trackingCost/5 + velocityCost + strafeCost + forwardReward;
+end
+function c = terminalCost(stage, x,u, stageParam)
+    goal = stageParam;
+    posErr = norm(x(1:2) - goal(1:2));
+    angErr = x(3) - goal(3);
+    velErr = norm(x(4:5)) - norm(goal(4:5)); 
+    angVelErr = abs(x(6)  - goal(6)); 
+    
+    positionCost = 30 * posErr^2;      
+    orientationCost = 45 * angErr^2;    
+    velocityCost = 1 * velErr^2;       
+    angularVelCost = 1 * angVelErr^2; 
+    
+    % Combine terminal costs
+    c = 5*(positionCost + orientationCost + velocityCost + angularVelCost);
+end
+function bestCandidate = findBestCandidate(candidates, startTheta)
+    lowestDist = 100;
+    bestCandidate = 0;
+    for c = 1:5
+        dist = abs(candidates(c) - startTheta);
+        if dist < lowestDist
+            bestCandidate = candidates(c);
+            lowestDist = dist;
+        end
+    end
+end
+end

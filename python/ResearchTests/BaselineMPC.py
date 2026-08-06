@@ -15,7 +15,7 @@ EPOCHS        = 120
 BATCH_SIZE    = 512
 LR_INITIAL    = 0.001
 LR_DROP_EPOCH = 50       # same as MATLAB
-SAVE_PATH = 'Test0_Baseline.tflite'
+SAVE_PATH = 'tfliteFiles/Test0_Baseline.tflite'
 
 def load_data(mat_files):
     parts = []
