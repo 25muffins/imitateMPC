@@ -62,11 +62,11 @@ public class FourInputTest1to4 extends LinearOpMode {
     public static float[] goal2    = {20, -20, 0};
     public static float[] startPos = {0, 0, 0};
     public static float GOAL_SWITCH_DIST = 5.0f;    // inches
-    public static float VELOCITY_SCALE   = 1.0f;    // scale factor on output velocities
-    public static String MODEL_FILE      = "Test1_HardSwitch.tflite";
-    private static final float POS_DIV   = 72.0f;
-    private static final float VEL_DIV   = 30.0f;
-    private static final float ANG_DIV   = (float) Math.PI;
+    public static float VELOCITY_SCALE = 1.0f;    // scale factor on output velocities
+    public static String MODEL_FILE = "Test1_HardSwitch.tflite";
+    private static final float POS_DIV = 72.0f;
+    private static final float VEL_DIV = 30.0f;
+    private static final float ANG_DIV = (float) Math.PI;
 
     private static final int HISTORY_STEPS    = 8;
     private static final int HISTORY_FEATURES = 9;
@@ -77,7 +77,7 @@ public class FourInputTest1to4 extends LinearOpMode {
     private float prevOmega = 0;
     public static double  kV = 0.35;
     public static double kVTheta = 0.15;
-    // ── metrics storage ───────────────────────────────────────────
+
     // each row: [timestamp, relX, relY, heading, vx, vy, omega,
     //            outVx, outVy, outOmega, posError, thetaError,
     //            goalSwitch, inferenceTime]
@@ -156,8 +156,8 @@ public class FourInputTest1to4 extends LinearOpMode {
 
             float[] convPose  = convertCoordinates((float) pose.getX(), (float) pose.getY());
             float[] convStart = convertCoordinates(startPos[0], startPos[1]);
-            float[] convG1    = convertCoordinates(goal1[0], goal1[1]);
-            float[] convG2    = convertCoordinates(goal2[0], goal2[1]);
+            float[] convG1 = convertCoordinates(goal1[0], goal1[1]);
+            float[] convG2 = convertCoordinates(goal2[0], goal2[1]);
 
             //relative to start
             float relX  = convPose[0] - convStart[0];
@@ -339,9 +339,14 @@ public class FourInputTest1to4 extends LinearOpMode {
 
             drawField(pose, relX, relY, relG1X, relG1Y, relG2X, relG2Y);
         }
+        fl.setPower(0);
+        fr.setPower(0);
+        br.setPower(0);
+        bl.setPower(0);
         saveMetrics();
         printSummary();
         telemetry.update();
+        sleep(5000);
     }
     private float dist(float x1, float y1, float x2, float y2) {
         return (float) Math.sqrt(Math.pow(x2-x1, 2) + Math.pow(y2-y1, 2));
