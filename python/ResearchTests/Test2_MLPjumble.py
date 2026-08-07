@@ -214,8 +214,9 @@ class MLPJumble(tf.keras.Model):
             hidden, activation='relu', name='wp_enc'
         )
         # output
-        self.fc1 = tf.keras.layers.Dense(hidden, activation='relu', name='fc1')
-        self.fc2 = tf.keras.layers.Dense(3, name='fc2')
+        self.fc1 = tf.keras.layers.Dense(256, activation='relu', name='fc1')
+        self.fc2 = tf.keras.layers.Dense(128, activation='relu', name='fc2')
+        self.fc3 = tf.keras.layers.Dense(3, name='fc3')
         self.out_act = tf.keras.layers.Activation('tanh', name='tanh')
 
     def call(self, inputs):
@@ -232,7 +233,7 @@ class MLPJumble(tf.keras.Model):
 
         #just concat all together
         combined = tf.concat([input_enc, h_enc, wp_enc], axis=-1)  # (B, 192)
-        out = self.out_act(self.fc2(self.fc1(combined)))   # (B, 3)
+        out = self.out_act(self.fc3(self.fc2(self.fc1(combined))))
 
         return out
 

@@ -214,8 +214,9 @@ class SigmoidBlend(tf.keras.Model):
             hidden, activation='relu', name='wp_enc'
         )
         # output
-        self.fc1 = tf.keras.layers.Dense(hidden, activation='relu', name='fc1')
-        self.fc2 = tf.keras.layers.Dense(3, name='fc2')
+        self.fc1 = tf.keras.layers.Dense(256, activation='relu', name='fc1')
+        self.fc2 = tf.keras.layers.Dense(128, activation='relu', name='fc2')
+        self.fc3 = tf.keras.layers.Dense(3, name='fc3')
         self.out_act = tf.keras.layers.Activation('tanh', name='tanh')
         self.gate_proj = tf.keras.layers.Dense(1, name='gate_proj')
 
@@ -247,7 +248,7 @@ class SigmoidBlend(tf.keras.Model):
 
         #just concat all together
         combined = tf.concat([input_enc, h_enc, wp_blended], axis=-1)  # (B, 192)
-        out = self.out_act(self.fc2(self.fc1(combined)))   # (B, 3)
+        out = self.out_act(self.fc3(self.fc2(self.fc1(combined))))
 
         sigmoid_w = tf.concat([1 - alpha, alpha], axis=-1)  # (B, 2)
         return out, sigmoid_w

@@ -58,12 +58,12 @@ public class FourInputPLEASE_WORK extends LinearOpMode {
     private ElapsedTime runTimer = new ElapsedTime();
     private FtcDashboard dashboard;
 
-    public static float[] goal1    = {10, -10, 0};  // x, y, heading
-    public static float[] goal2    = {20, -20, 0};
+    public static float[] goal1    = {10, 10, 1};  // x, y, heading
+    public static float[] goal2    = {-20, -40, -1};
     public static float[] startPos = {0, 0, 0};
     public static float GOAL_SWITCH_DIST = 5.0f;    // inches
     public static float VELOCITY_SCALE = 1.0f;    // scale factor on output velocities
-    public static String MODEL_FILE = "Test5_HardSwitch.tflite";
+    public static String MODEL_FILE = "Test5_DistToGoal.tflite";
     private static final float POS_DIV = 72.0f;
     private static final float VEL_DIV = 30.0f;
     private static final float ANG_DIV = (float) Math.PI;
@@ -201,7 +201,7 @@ public class FourInputPLEASE_WORK extends LinearOpMode {
             query[0][6] = omega / ANG_DIV;
             query[0][7] = goalSwitch;
 
-            //waypoints (1, 2, 4) [x/72, y/72, sin_heading, cos_heading] per goal
+            //waypoints (1, 2, 5) [x/72, y/72, sin_heading, cos_heading] per goal
             float[][][] waypoints = new float[1][2][5];
             waypoints[0][0][0] = relG1X / POS_DIV;
             waypoints[0][0][1] = relG1Y / POS_DIV;
@@ -245,7 +245,7 @@ public class FourInputPLEASE_WORK extends LinearOpMode {
                 int[] shape = interpreter.getInputTensor(i).shape();
                 if (Arrays.equals(shape, new int[]{1, 8})) {
                     inputs[i] = query;
-                } else if (Arrays.equals(shape, new int[]{1, 2, 4})) {
+                } else if (Arrays.equals(shape, new int[]{1, 2, 5})) {
                     inputs[i] = waypoints;
                 } else if (Arrays.equals(shape, new int[]{1, HISTORY_STEPS, HISTORY_FEATURES})) {
                     inputs[i] = weightedHistoryBuf;

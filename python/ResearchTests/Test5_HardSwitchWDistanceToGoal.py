@@ -18,7 +18,7 @@ LR_INITIAL    = 0.001
 HIDDEN_NEURONS = 64
 LR_DROP_EPOCH = 50       # same as MATLAB
 v_n = 30 #stands for velocity normaliztion: if using relative coords, 30, if using global coords, 30*sqrt2
-SAVE_PATH = 'tfliteFiles/Test5_DistToGoal.tflite'
+SAVE_PATH = 'tfliteFiles/testingg.tflite'
 
 def load_data(mat_files):
     parts = []
@@ -75,7 +75,7 @@ def normalize(currentState, waypoints, past_u, target, history):
 
 
 def temporal_split(query_norm, wp_norm, target_norm,
-                   attn_targets, goalswitch):
+                   goalswitch, hist_norm):
 
     N = len(query_norm)
     split = int((1 - VAL_PERCENT) * N)
@@ -83,11 +83,11 @@ def temporal_split(query_norm, wp_norm, target_norm,
     Xq_tr, Xq_val = query_norm[:split], query_norm[split:]
     Xw_tr, Xw_val = wp_norm[:split], wp_norm[split:]
     Y_tr, Y_val = target_norm[:split], target_norm[split:]
-    Yat_tr = attn_targets[:split]
-    gs_val = goalswitch[split:]
+    Xh_tr, Xh_val = hist_norm[:split], hist_norm[split:]
+    gs_tr, gs_val = goalswitch[:split], goalswitch[split:]
 
-    print(f"Train: {len(Xq_tr)}  Val: {len(Xq_val)}")
-    return Xq_tr, Xq_val, Xw_tr, Xw_val, Y_tr, Y_val, Yat_tr, gs_val
+    return (Xq_tr, Xq_val, Xw_tr, Xw_val,
+            Y_tr, Y_val, gs_tr, gs_val, Xh_tr, Xh_val)
 
 def random_split(query_norm, wp_norm, target_norm,
                  goalswitch, hist_norm,
@@ -216,9 +216,13 @@ class HardswitchWithHistoryGRU(tf.keras.Model):
             hidden, activation='relu', name='wp_enc'
         )
         # output
-        self.fc1 = tf.keras.layers.Dense(hidden, activation='relu', name='fc1')
-        self.fc2 = tf.keras.layers.Dense(3, name='fc2')
+        self.fc1 = tf.keras.layers.Dense(256, activation='relu', name='fc1')
+        self.fc2 = tf.keras.layers.Dense(128, activation='relu', name='fc2')
+        self.fc3 = tf.keras.layers.Dense(3, name='fc3')
         self.out_act = tf.keras.layers.Activation('tanh', name='tanh')
+
+        self.dropout = tf.keras.layers.Dropout(0.2)
+        self.layernorm = tf.keras.layers.LayerNormalization()
 
     def call(self, inputs):
         query, waypoints, history, goalswitch = inputs
@@ -238,7 +242,7 @@ class HardswitchWithHistoryGRU(tf.keras.Model):
 
         #just concat all together
         combined = tf.concat([input_enc, h_enc, wp_enc], axis=-1)  # (B, 192)
-        out = self.out_act(self.fc2(self.fc1(combined)))   # (B, 3)
+        out = self.out_act(self.fc3(self.fc2(self.fc1(combined))))
 
         # hard weights for logging
         hard_w = tf.concat([
@@ -293,6 +297,12 @@ def train(Xq_tr, Xw_tr, Xh_tr, gs_tr, Y_tr,  #train
     mae = err.mean()
     mse = np.mean((vp - Y_val) ** 2)
     print(f"  val_mae: {mae:.4f}  |  val_mse: {mse:.4f}")
+    q_enc_out = network.input_enc(Xq_val[:500, :7]).numpy()
+    h_enc_out = network.history_enc(Xh_val[:500]).numpy()
+
+    # if correlation is high → redundant representations
+    corr = np.corrcoef(q_enc_out.flatten(), h_enc_out.flatten())[0, 1]
+    print(f"q_enc vs h_enc correlation: {corr:.3f}")
     return network, mae, mse
 
 
@@ -305,7 +315,7 @@ def main():
     query_norm, wp_norm, past_norm, target_norm, hist_norm = normalize(query, waypoints, past_u, target, history)
 
     (Xq_tr, Xq_val, Xw_tr, Xw_val,
-     Y_tr, Y_val, gs_tr, gs_val, Xh_tr, Xh_val) = random_split(
+     Y_tr, Y_val, gs_tr, gs_val, Xh_tr, Xh_val) = temporal_split(
         query_norm, wp_norm, target_norm, goalswitch, hist_norm,
     )
 

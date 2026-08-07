@@ -69,11 +69,12 @@ planner.States(3).Max =  6*pi;
 
 
 clf
-rng(901)
+rng(90012341)
 %clf
 % initialize
 d = zeros(1,110); %rows will automatically fill up
-for ct = 1:500
+dataRowCounter = 0;
+for ct = 1:250
     ct
     x = [0;0;0;0;0;0];
     goal1 = [144*rand-72,...
@@ -116,9 +117,20 @@ for ct = 1:500
     uHistory = [];
     
     goalswitch = 0;
+    historyMatrix = zeros(1,72);
+    lastHistoryRow = zeros(1,9);
+    
     for k = 1:100
+        %historyMatrix = [historyMatrix(10:end), lastHistoryRow];
+
         dist1 = sqrt((x(1)-goal1(1))^2 + (x(2)-goal1(2))^2);
         dist2 = sqrt((x(1)-goal2(1))^2 + (x(2)-goal2(2))^2);
+        angle1 =  atan2(goal1(2)  -  x(2), goal1(1) - x(1));
+        angle2 =  atan2(goal2(2)  -  x(2), goal2(1) - x(1));
+
+        g1 = [goal1,  dist1, angle1];
+        g2 = [goal2,  dist2, angle2];
+        
         if dist1 >= 0.5 && goalswitch == 0
             currentGoal = goal1';
             goalswitch = 0;
@@ -137,6 +149,12 @@ for ct = 1:500
         simData.TerminalState = currentGoal;
 
         [u,~,info] = nlmpcmove(planner,x,u,simData);
+        
+        %if(i==a(1)) nextVels = [0,0,0];
+        %else nextVels = xTrackHistory(i+1, 4:6);
+        %end
+        nextVels = [0,0,0]; %not planning on using anyways
+
         xTrackHistory = [
             xTrackHistory;
             x'
@@ -145,29 +163,50 @@ for ct = 1:500
             uHistory;
             u'
         ];
+        optimalU  = uHistory(k,:);
+        if(k==1) lastU =  [0,0,0];
+        else  lastU =  uHistory(k-1,:);
+        end
+
+        sinEmbeddings = [sin(x(3)); cos(x(3)); sin(goal1(3)); cos(goal1(3)); sin(goal2(3)); cos(goal2(3))];
+
+        %lastHistoryRow = [x(1:3)', sinEmbeddings(1:2)', x(4:6)', goalswitch];
+        currentHistoryRow = [
+            x(1:3)', ...
+            sinEmbeddings(1:2)', ...
+            x(4:6)', ...
+            goalswitch
+        ];
+        historyMatrix = [
+            historyMatrix(10:end), ...
+            currentHistoryRow
+        ];
+        d(dataRowCounter + k,:) =  [x(:)',  g1(:)', g2(:)', optimalU(:)', lastU(:)', goalswitch, nextVels, sinEmbeddings', historyMatrix];
 
         x = mecanumStateFcn(x,u);
         if goalswitch == 1 && dist2 < 0.5
+            dataRowCounter = dataRowCounter + k;
+            k
             break
         end
     end
     
     
-    hold on
-    plot(1:size(xTrackHistory,1), xTrackHistory(:,3), 'LineWidth', 2)
-    plot(xTrackHistory(:,1),xTrackHistory(:,2))
-    plot(xTrackHistory(:,1),xTrackHistory(:,2),'ro')
-    
-    plot(goal1(1),goal1(2),'bo')
-    plot(goal2(1),goal2(2),'bo')
-    
-    plot(waypoints(:,1),waypoints(:,2),'go')
+%    hold on
+%    plot(1:size(xTrackHistory,1), xTrackHistory(:,3), 'LineWidth', 2)
+%    plot(xTrackHistory(:,1),xTrackHistory(:,2))
+%    plot(xTrackHistory(:,1),xTrackHistory(:,2),'ro')
+%    
+%    plot(goal1(1),goal1(2),'bo')
+%    plot(goal2(1),goal2(2),'bo')
+%    
+%    plot(waypoints(:,1),waypoints(:,2),'go')
 
 end
 %plot(1:N+1, d(1:N+1,3))
 
 % Create MAT file
-save('DistanceBasedV1','d')
+save('DistanceBasedV2','d')
 
 
 function returnState = mecanumStateFcn(x, u)  %u is xvel, yvel, thetavel (relative to  body)

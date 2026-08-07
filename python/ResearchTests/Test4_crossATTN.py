@@ -12,7 +12,7 @@ matlab_files = ['HistoryDataV1.mat',
               'HistoryDataV2.mat']
 
 VAL_PERCENT = 0.15 #15% validation data
-EPOCHS        = 120
+EPOCHS        = 200
 BATCH_SIZE    = 512
 LR_INITIAL    = 0.001
 HIDDEN_NEURONS = 64
@@ -240,8 +240,9 @@ class crossAttn(tf.keras.Model):
         )
 
         # output
-        self.fc1 = tf.keras.layers.Dense(hidden, activation='relu', name='fc1')
-        self.fc2 = tf.keras.layers.Dense(3, name='fc2')
+        self.fc1 = tf.keras.layers.Dense(256, activation='relu', name='fc1')
+        self.fc2 = tf.keras.layers.Dense(128, activation='relu', name='fc2')
+        self.fc3 = tf.keras.layers.Dense(3, name='fc3')
         self.out_act = tf.keras.layers.Activation('tanh', name='tanh')
 
     def call(self, inputs):
@@ -256,7 +257,8 @@ class crossAttn(tf.keras.Model):
         wp_flat = tf.reshape(waypoints, [-1, 8])
         kv = self.wp_enc(waypoints)  # (B, 64)
 
-        Q = self.W_q(h_attention_enc)  # (B, 8, 64)
+        # Q = self.W_q(h_attention_enc)  # (B, 8, 64)
+        Q = tf.expand_dims(self.W_q(input_enc), axis=1)  # (B, 1, 64)
         K = self.W_k(kv)  # (B, 2, 64)
         V = self.W_v(kv)  # (B, 2, 64)
 
@@ -265,7 +267,7 @@ class crossAttn(tf.keras.Model):
         context = tf.matmul(weights, V)
 
         #summarize
-        H_enriched = tf.concat([h_attention_enc, context], axis=-1)  # (B, 8, 128)
+        H_enriched = tf.concat([h_attention_enc], axis=-1)  # (B, 8, 128)
         h_summary = self.history_gru(H_enriched)  # (B, 64)
         #wp blend
         mean_w = tf.reduce_mean(weights, axis=1, keepdims=True)  # (B, 1, 2)
@@ -273,7 +275,7 @@ class crossAttn(tf.keras.Model):
 
         #just concat all together
         combined = tf.concat([input_enc, h_summary, wp_context], axis=-1)  # (B, 192)
-        out = self.out_act(self.fc2(self.fc1(combined)))   # (B, 3)
+        out = self.out_act(self.fc3(self.fc2(self.fc1(combined))))
 
         mean_attn = tf.reduce_mean(weights, axis=1)
         return out, mean_attn, weights
