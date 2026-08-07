@@ -50,7 +50,7 @@ import java.util.Locale;
 import static org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequenceRunner.COLOR_INACTIVE_TRAJECTORY;
 
 @Config
-@Autonomous(name = "FourInputTest1to4")
+@Autonomous(name = "FourInputTest1to4PLEASEWORK")
 public class FourInputPLEASE_WORK extends LinearOpMode {
     IMU imu;
     TwoWheelTrackingLocalizer localizer;

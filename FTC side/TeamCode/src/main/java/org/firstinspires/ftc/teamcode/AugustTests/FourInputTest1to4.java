@@ -58,12 +58,12 @@ public class FourInputTest1to4 extends LinearOpMode {
     private ElapsedTime runTimer = new ElapsedTime();
     private FtcDashboard dashboard;
 
-    public static float[] goal1    = {10, -10, 0};  // x, y, heading
-    public static float[] goal2    = {20, -20, 0};
+    public static float[] goal1    = {10, 10, 0};  // x, y, heading
+    public static float[] goal2    = {-20, -20, 0};
     public static float[] startPos = {0, 0, 0};
     public static float GOAL_SWITCH_DIST = 5.0f;    // inches
     public static float VELOCITY_SCALE = 1.0f;    // scale factor on output velocities
-    public static String MODEL_FILE = "Test1_HardSwitch.tflite";
+    public static String MODEL_FILE = "Test2_MLPJumble.tflite";
     private static final float POS_DIV = 72.0f;
     private static final float VEL_DIV = 30.0f;
     private static final float ANG_DIV = (float) Math.PI;
@@ -75,7 +75,7 @@ public class FourInputTest1to4 extends LinearOpMode {
     private float prevVx    = 0;
     private float prevVy    = 0;
     private float prevOmega = 0;
-    public static double  kV = 0.35;
+    public static double  kV = 0.25;
     public static double kVTheta = 0.15;
 
     // each row: [timestamp, relX, relY, heading, vx, vy, omega,
@@ -145,7 +145,7 @@ public class FourInputTest1to4 extends LinearOpMode {
         timer.reset();
 
         while (opModeIsActive() && !done) {
-
+            long loopStart = System.currentTimeMillis();
             localizer.update();
             float elapsed = (float) runTimer.seconds();
             Pose2d pose    = localizer.getPoseEstimate();
@@ -263,18 +263,20 @@ public class FourInputTest1to4 extends LinearOpMode {
             float outOmega = output[0][2] * ANG_DIV;
 
             //store in case
-            prevVx = outVx;
-            prevVy = outVy;
-            prevOmega = outOmega;
+
 
 
             //mecanum velocity
 //            float flPower = VELOCITY_SCALE * (outVx - outVy - outOmega);
-//            float blPower = VELOCITY_SCALE * (outVx + outVy - outOmega);
+//            float blPower = VELOCITY_SCALE * (outVx
+//            + outVy - outOmega);
 //            float brPower = VELOCITY_SCALE * (outVx - outVy + outOmega);
 //            float frPower = VELOCITY_SCALE * (outVx + outVy + outOmega);
 
-
+            float alpha = 0.7f;   // higher = more smoothing
+            outVx    = alpha * outVx    + (1 - alpha) * prevVx;
+            outVy    = alpha * outVy    + (1 - alpha) * prevVy;
+            outOmega = alpha * outOmega + (1 - alpha) * prevOmega;
             List<Double> drivePowers = getDrivePower(new Pose2d(outVx * kV, outVy * kV, outOmega * kVTheta));
 //            List<Double> drivePowers = getDrivePower(new Pose2d(1, 1, 0.1)); //testing
             double flPower = drivePowers.get(0);
@@ -292,6 +294,9 @@ public class FourInputTest1to4 extends LinearOpMode {
             br.setPower(brPower / maxPower);
             fr.setPower(frPower / maxPower);
 
+            prevVx = outVx;
+            prevVy = outVy;
+            prevOmega = outOmega;
 
             float activeGoalX = (goalSwitch == 0) ? relG1X : relG2X;
             float activeGoalY = (goalSwitch == 0) ? relG1Y : relG2Y;
@@ -338,6 +343,8 @@ public class FourInputTest1to4 extends LinearOpMode {
             telemetry.update();
 
             drawField(pose, relX, relY, relG1X, relG1Y, relG2X, relG2Y);
+            long elapsed1 = System.currentTimeMillis() - loopStart;
+//            if (elapsed1 < 200) sleep(200 - elapsed1);
         }
         fl.setPower(0);
         fr.setPower(0);
