@@ -3,15 +3,20 @@ import math
 import numpy as np
 import scipy.io
 import tensorflow as tf
+import datetime
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 import os
 
-
+log_dir   = "logs/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+writer    = tf.summary.create_file_writer(log_dir)
+print(f"TensorBoard logs: {log_dir}")
+print(f"Run: tensorboard --logdir logs/")
 matlab_files = ['HistoryDataV1.mat',
               'HistoryDataV2.mat',
                 'HistoryDataV3.mat',
-                'HistoryDataV4.mat']
+                'HistoryDataV4.mat',
+                'HistoryDataV5.mat']
 # matlab_files = ['DistanceBasedV1.mat',
 #                 'DistanceBasedV2.mat']
 
@@ -287,6 +292,33 @@ def train(Xq_tr, Xw_tr, Xh_tr, gs_tr, Y_tr,  #train
             lossList.append(step(Xq_tr[b], Xw_tr[b], Xh_tr[b], gs_tr[b], Y_tr[b]))
         if epoch % 10 == 0:
             print(f"  Epoch: {epoch}/{EPOCHS}  |  LOSS: {np.mean(lossList)}")
+
+        vp, hard_w = network([Xq_val, Xw_val, Xh_val, gs_val])
+        vp = vp.numpy()
+        err = np.abs(vp - Y_val)
+        val_mae = err.mean()
+        val_mse = np.mean((vp - Y_val) ** 2)
+        with writer.as_default():
+
+            # losses
+            tf.summary.scalar('loss/train', np.mean(lossList), step=epoch)
+            tf.summary.scalar('loss/val_mae', val_mae, step=epoch)
+            tf.summary.scalar('loss/val_mse', val_mse, step=epoch)
+
+            # learning rate
+            tf.summary.scalar('lr',
+                              float(optimizer.learning_rate), step=epoch)
+            # per-output MAE
+            err = np.abs(vp - Y_val)
+            tf.summary.scalar('mae/vx', err[:, 0].mean(), step=epoch)
+            tf.summary.scalar('mae/vy', err[:, 1].mean(), step=epoch)
+            tf.summary.scalar('mae/omega', err[:, 2].mean(), step=epoch)
+
+            # weight histograms — shows if layers are learning
+            for var in network.trainable_variables:
+                tf.summary.histogram(var.name, var, step=epoch)
+
+            writer.flush()
 
 
     vp, hard_w = network([Xq_val, Xw_val, Xh_val, gs_val])
