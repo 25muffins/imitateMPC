@@ -58,7 +58,7 @@ public class FourInputPLEASE_WORK extends LinearOpMode {
     private ElapsedTime runTimer = new ElapsedTime();
     private FtcDashboard dashboard;
 
-    public static float[] goal1    = {10, 10, 1};  // x, y, heading
+    public static float[] goal1    = {20, 10, 1};  // x, y, heading
     public static float[] goal2    = {-20, -40, -1};
     public static float[] startPos = {0, 0, 0};
     public static float GOAL_SWITCH_DIST = 5.0f;    // inches
@@ -96,6 +96,11 @@ public class FourInputPLEASE_WORK extends LinearOpMode {
         DcMotorEx bl = hardwareMap.get(DcMotorEx.class, "bl");
         DcMotorEx br = hardwareMap.get(DcMotorEx.class, "br");
         DcMotorEx fr = hardwareMap.get(DcMotorEx.class, "fr");
+
+        fl.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        bl.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        fr.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        br.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         fl.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         bl.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);

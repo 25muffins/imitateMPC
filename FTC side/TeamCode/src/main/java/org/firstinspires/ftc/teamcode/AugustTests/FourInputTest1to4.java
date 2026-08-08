@@ -58,12 +58,12 @@ public class FourInputTest1to4 extends LinearOpMode {
     private ElapsedTime runTimer = new ElapsedTime();
     private FtcDashboard dashboard;
 
-    public static float[] goal1    = {10, 10, 0};  // x, y, heading
-    public static float[] goal2    = {-20, -20, 0};
+    public static float[] goal1    = {20, 10, 1};  // x, y, heading
+    public static float[] goal2    = {-20, -40, -1};
     public static float[] startPos = {0, 0, 0};
     public static float GOAL_SWITCH_DIST = 5.0f;    // inches
     public static float VELOCITY_SCALE = 1.0f;    // scale factor on output velocities
-    public static String MODEL_FILE = "Test2_MLPJumble.tflite";
+    public static String MODEL_FILE = "Test1_NewMPC.tflite";
     private static final float POS_DIV = 72.0f;
     private static final float VEL_DIV = 30.0f;
     private static final float ANG_DIV = (float) Math.PI;
@@ -101,6 +101,12 @@ public class FourInputTest1to4 extends LinearOpMode {
         bl.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         br.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         fr.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+
+        fl.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        bl.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        fr.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        br.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
 
         fl.setDirection(DcMotorSimple.Direction.REVERSE);
         bl.setDirection(DcMotorSimple.Direction.REVERSE);
@@ -273,12 +279,13 @@ public class FourInputTest1to4 extends LinearOpMode {
 //            float brPower = VELOCITY_SCALE * (outVx - outVy + outOmega);
 //            float frPower = VELOCITY_SCALE * (outVx + outVy + outOmega);
 
-            float alpha = 0.7f;   // higher = more smoothing
-            outVx    = alpha * outVx    + (1 - alpha) * prevVx;
-            outVy    = alpha * outVy    + (1 - alpha) * prevVy;
-            outOmega = alpha * outOmega + (1 - alpha) * prevOmega;
+//            float alpha = 0.7f;   // higher = more smoothing
+//            outVx    = alpha * outVx    + (1 - alpha) * prevVx;
+//            outVy    = alpha * outVy    + (1 - alpha) * prevVy;
+//            outOmega = alpha * outOmega + (1 - alpha) * prevOmega;
+            Pose2d fieldCentricConverted = fieldCentric(outVx * kV, outVy * kV, outOmega * kVTheta, heading);
+//            List<Double> drivePowers = getDrivePower(fieldCentricConverted);
             List<Double> drivePowers = getDrivePower(new Pose2d(outVx * kV, outVy * kV, outOmega * kVTheta));
-//            List<Double> drivePowers = getDrivePower(new Pose2d(1, 1, 0.1)); //testing
             double flPower = drivePowers.get(0);
             double blPower = drivePowers.get(1);
             double brPower = drivePowers.get(2);
@@ -464,6 +471,7 @@ public class FourInputTest1to4 extends LinearOpMode {
 
     private float[][][] rawHistoryBuf     = new float[1][HISTORY_STEPS][HISTORY_FEATURES];
     private float[][][] weightedHistoryBuf = new float[1][HISTORY_STEPS][HISTORY_FEATURES];
+
     private void updateHistory(float[] newStep) {
         if (!historyInitialized) {
             for (int t = 0; t < HISTORY_STEPS; t++) {
@@ -486,7 +494,11 @@ public class FourInputTest1to4 extends LinearOpMode {
         }
     }
 
-
+    public Pose2d fieldCentric(double x, double y, double h, double currHeading) {
+        double[] p = {x, y, h};
+        Vector2d vec = new Vector2d(p[0], p[1]).rotated(-currHeading);
+        return new Pose2d(vec.getX(), vec.getY(), p[2]); //clockwise
+    }
     double getHeading() {
         return imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS);
     }

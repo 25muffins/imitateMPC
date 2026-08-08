@@ -8,7 +8,8 @@ from sklearn.model_selection import train_test_split
 import os
 
 matlab_files = ['HistoryDataV1.mat',
-              'HistoryDataV2.mat']
+              'HistoryDataV2.mat',
+                'HistoryDataV3.mat']
 
 VAL_PERCENT = 0.15 #15% validation data
 EPOCHS        = 120
