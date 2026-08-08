@@ -9,7 +9,8 @@ import os
 
 matlab_files = ['HistoryDataV1.mat',
               'HistoryDataV2.mat',
-                'HistoryDataV3.mat']
+                'HistoryDataV3.mat',
+                'HistoryDataV4.mat']
 
 VAL_PERCENT = 0.15 #15% validation data
 EPOCHS        = 120

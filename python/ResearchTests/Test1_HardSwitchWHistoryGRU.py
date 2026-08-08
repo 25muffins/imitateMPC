@@ -10,7 +10,8 @@ import os
 
 matlab_files = ['HistoryDataV1.mat',
               'HistoryDataV2.mat',
-                'HistoryDataV3.mat']
+                'HistoryDataV3.mat',
+                'HistoryDataV4.mat']
 # matlab_files = ['DistanceBasedV1.mat',
 #                 'DistanceBasedV2.mat']
 
