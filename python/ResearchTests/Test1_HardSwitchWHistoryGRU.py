@@ -16,7 +16,8 @@ matlab_files = ['HistoryDataV1.mat',
               'HistoryDataV2.mat',
                 'HistoryDataV3.mat',
                 'HistoryDataV4.mat',
-                'HistoryDataV5.mat']
+                'HistoryDataV5.mat',
+                'HistoryDataV6.mat']
 # matlab_files = ['DistanceBasedV1.mat',
 #                 'DistanceBasedV2.mat']
 
@@ -27,7 +28,7 @@ LR_INITIAL    = 0.001
 HIDDEN_NEURONS = 64
 LR_DROP_EPOCH = 50       # same as MATLAB
 v_n = 30 #stands for velocity normaliztion: if using relative coords, 30, if using global coords, 30*sqrt2
-SAVE_PATH = 'tfliteFiles/Test1_NewMPC.tflite'
+SAVE_PATH = 'tfliteFiles/Test1_QUANTIZED.tflite'
 
 def load_data(mat_files):
     parts = []

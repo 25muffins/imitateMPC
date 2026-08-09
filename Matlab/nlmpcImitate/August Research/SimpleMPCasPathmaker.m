@@ -69,7 +69,7 @@ planner.States(3).Max =  6*pi;
 
 
 clf
-rng(237)
+rng(23347)
 %clf
 % initialize
 d = zeros(1,110); %rows will automatically fill up
@@ -189,7 +189,7 @@ end
 %plot(1:N+1, d(1:N+1,3))
 
 % Create MAT file
-save('HistoryDataV5','d')
+save('HistoryDataV6','d')
 
 
 function returnState = mecanumStateFcn(x, u)  %u is xvel, yvel, thetavel (relative to  body)
