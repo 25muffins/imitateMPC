@@ -9,7 +9,10 @@ import os
 
 matlab_files = ['HistoryDataV1.mat',
               'HistoryDataV2.mat',
-                'HistoryDataV3.mat']
+                'HistoryDataV3.mat',
+                'HistoryDataV4.mat',
+                'HistoryDataV5.mat',
+                'HistoryDataV6.mat']
 
 VAL_PERCENT = 0.15 #15% validation data
 EPOCHS        = 120
@@ -18,7 +21,7 @@ LR_INITIAL    = 0.001
 HIDDEN_NEURONS = 64
 LR_DROP_EPOCH = 50       # same as MATLAB
 v_n = 30 #stands for velocity normaliztion: if using relative coords, 30, if using global coords, 30*sqrt2
-SAVE_PATH = 'tfliteFiles/Test3_SigmoidBlend_fieldcentric.tflite'
+SAVE_PATH = 'tfliteFiles/Test3_SigmoidBlend.tflite'
 
 def load_data(mat_files):
     parts = []
@@ -45,8 +48,8 @@ def extract_features(data):
     past_u = data[:, [25, 26, 27]]  # past xvel, yvel, omega
 
     goalswitch = data[:, [28]].astype(np.float32)  #goalswitch
-    # target = data[:, [22, 23, 24]]  # ideal vx, vy, omega
-    target = data[:, [29, 30, 31]]  # ideal vx, vy, omega
+    target = data[:, [22, 23, 24]]  # ideal vx, vy, omega
+    # target = data[:, [29, 30, 31]]  # ideal vx, vy, omega
 
     # each step: [x, y, theta, sin_th, cos_th, vx, vy, omega, goalswitch]
     history = data[:, 38:110].reshape(-1, 8, 9)  # (N, 8, 9)
@@ -289,6 +292,8 @@ def train(Xq_tr, Xw_tr, Xh_tr, gs_tr, Y_tr,  #train
             lossList.append(step(Xq_tr[b], Xw_tr[b], Xh_tr[b], gs_tr[b], Y_tr[b]))
         if epoch % 10 == 0:
             print(f"  Epoch: {epoch}/{EPOCHS}  |  LOSS: {np.mean(lossList)}")
+
+        network.summary()
 
 
     vp, sigmoid_w = network([Xq_val, Xw_val, Xh_val, gs_val])

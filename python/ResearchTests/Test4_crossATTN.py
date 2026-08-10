@@ -8,15 +8,14 @@ from sklearn.model_selection import train_test_split
 import os
 
 matlab_files = ['HistoryDataV1.mat',
-              'HistoryDataV2.mat',
-                'HistoryDataV3.mat']
+              'HistoryDataV2.mat']
 VAL_PERCENT = 0.15 #15% validation data
 EPOCHS        = 200
 BATCH_SIZE    = 512
 LR_INITIAL    = 0.001
 HIDDEN_NEURONS = 64
 LR_DROP_EPOCH = 50       # same as MATLAB
-LAMBDA_ATTN = 0.1
+LAMBDA_ATTN = 0.3
 ALPHA = 0.05
 v_n = 30 #stands for velocity normaliztion: if using relative coords, 30, if using global coords, 30*sqrt2
 SAVE_PATH = 'tfliteFiles/Test4_crossATTN.tflite'
@@ -257,7 +256,7 @@ class crossAttn(tf.keras.Model):
         kv = self.wp_enc(waypoints)  # (B, 64)
 
         # Q = self.W_q(h_attention_enc)  # (B, 8, 64)
-        Q = tf.expand_dims(self.W_q(input_enc), axis=1)  # (B, 1, 64)
+        Q = self.W_q(h_attention_enc)  # (B, 1, 64)
         K = self.W_k(kv)  # (B, 2, 64)
         V = self.W_v(kv)  # (B, 2, 64)
 
@@ -266,7 +265,7 @@ class crossAttn(tf.keras.Model):
         context = tf.matmul(weights, V)
 
         #summarize
-        H_enriched = tf.concat([h_attention_enc], axis=-1)  # (B, 8, 128)
+        H_enriched = tf.concat([h_attention_enc, context], axis=-1)  # (B, 8, 128)
         h_summary = self.history_gru(H_enriched)  # (B, 64)
         #wp blend
         mean_w = tf.reduce_mean(weights, axis=1, keepdims=True)  # (B, 1, 2)
@@ -323,6 +322,7 @@ def train(Xq_tr, Xw_tr, Xh_tr, gs_tr, Y_tr,  #train
             lossList.append(step(Xq_tr[b], Xw_tr[b], Xh_tr[b], gs_tr[b], Y_tr[b], Yat_tr[b]))
         if epoch % 10 == 0:
             print(f"  Epoch: {epoch}/{EPOCHS}  |  LOSS: {np.mean(lossList)}")
+
 
 
 

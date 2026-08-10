@@ -11,7 +11,8 @@ matlab_files = ['HistoryDataV1.mat',
               'HistoryDataV2.mat',
                 'HistoryDataV3.mat',
                 'HistoryDataV4.mat',
-                'HistoryDataV5.mat']
+                'HistoryDataV5.mat',
+                'HistoryDataV6.mat']
 
 VAL_PERCENT = 0.15 #15% validation data
 EPOCHS        = 120
@@ -174,7 +175,6 @@ class MLPBaseline(tf.keras.Model):
             tf.keras.layers.Dense(450, activation='relu',
                                   input_shape=(13,)),
             #tf.keras.layers.Dropout(0.2),
-            tf.keras.layers.Dense(300, activation='relu'),
             tf.keras.layers.Dense(200, activation='relu'),
             tf.keras.layers.LayerNormalization(),
             tf.keras.layers.Dense(100, activation='relu'),
@@ -223,6 +223,8 @@ def train_baseline(Xq_tr, Xw_tr, Y_tr, Xq_val, Xw_val, Y_val):
             lossList.append(step(Xq_tr[b], Xw_tr[b], Y_tr[b]))
         if epoch % 10 == 0:
             print(f"  Epoch: {epoch}/{EPOCHS}  |  LOSS: {np.mean(lossList)}")
+
+
 
 
     vp = baseline([Xq_val, Xw_val]).numpy()

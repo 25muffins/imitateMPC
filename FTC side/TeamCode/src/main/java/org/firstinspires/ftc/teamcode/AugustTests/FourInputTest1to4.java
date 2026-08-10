@@ -52,6 +52,7 @@ import static org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequen
 @Config
 @Autonomous(name = "FourInputTest1to4")
 public class FourInputTest1to4 extends LinearOpMode {
+
     IMU imu;
     TwoWheelTrackingLocalizer localizer;
     private ElapsedTime timer = new ElapsedTime();
@@ -63,7 +64,7 @@ public class FourInputTest1to4 extends LinearOpMode {
     public static float[] startPos = {0, 0, 0};
     public static float GOAL_SWITCH_DIST = 5.0f;    // inches
     public static float VELOCITY_SCALE = 1.0f;    // scale factor on output velocities
-    public static String MODEL_FILE = "Test1_NewMPC.tflite";
+    public static String MODEL_FILE = "Test4_crossATTN.tflite";
     private static final float POS_DIV = 72.0f;
     private static final float VEL_DIV = 30.0f;
     private static final float ANG_DIV = (float) Math.PI;

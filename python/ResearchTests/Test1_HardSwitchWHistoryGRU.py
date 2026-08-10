@@ -28,7 +28,7 @@ LR_INITIAL    = 0.001
 HIDDEN_NEURONS = 64
 LR_DROP_EPOCH = 50       # same as MATLAB
 v_n = 30 #stands for velocity normaliztion: if using relative coords, 30, if using global coords, 30*sqrt2
-SAVE_PATH = 'tfliteFiles/Test1_QUANTIZED.tflite'
+SAVE_PATH = 'tfliteFiles/Test1_HardSwitch_BigModel.tflite'
 
 def load_data(mat_files):
     parts = []
@@ -228,6 +228,15 @@ class HardswitchWithHistoryGRU(tf.keras.Model):
         self.fc1 = tf.keras.layers.Dense(256, activation='relu', name='fc1')
         self.fc2 = tf.keras.layers.Dense(128, activation='relu', name='fc2')
         self.fc3 = tf.keras.layers.Dense(3, name='fc3')
+        self.net = tf.keras.Sequential([
+            tf.keras.layers.Dense(300, activation='relu'),
+            tf.keras.layers.Dense(200, activation='relu'),
+            tf.keras.layers.LayerNormalization(),
+            tf.keras.layers.Dense(100, activation='relu'),
+            tf.keras.layers.Dense(45, activation='relu'),
+            tf.keras.layers.Dense(3),
+            tf.keras.layers.Activation('tanh')
+        ])
         self.out_act = tf.keras.layers.Activation('tanh', name='tanh')
 
     def call(self, inputs):
@@ -248,7 +257,7 @@ class HardswitchWithHistoryGRU(tf.keras.Model):
 
         #just concat all together
         combined = tf.concat([input_enc, h_enc, wp_enc], axis=-1)  # (B, 192)
-        out = self.out_act(self.fc3(self.fc2(self.fc1(combined))))
+        out = self.net(combined)
 
         # hard weights for logging
         hard_w = tf.concat([
@@ -262,6 +271,7 @@ class HardswitchWithHistoryGRU(tf.keras.Model):
 def train(Xq_tr, Xw_tr, Xh_tr, gs_tr, Y_tr,  #train
           Xq_val, Xw_val, Xh_val, gs_val, Y_val): #val
     print("\nTraining MLP baseline for ablation comparison...")
+
     network = HardswitchWithHistoryGRU()
     optimizer = tf.keras.optimizers.Adam(
         learning_rate=1e-3,
@@ -299,6 +309,7 @@ def train(Xq_tr, Xw_tr, Xh_tr, gs_tr, Y_tr,  #train
         err = np.abs(vp - Y_val)
         val_mae = err.mean()
         val_mse = np.mean((vp - Y_val) ** 2)
+
         with writer.as_default():
 
             # losses
@@ -323,6 +334,7 @@ def train(Xq_tr, Xw_tr, Xh_tr, gs_tr, Y_tr,  #train
 
 
     vp, hard_w = network([Xq_val, Xw_val, Xh_val, gs_val])
+
     vp = vp.numpy()
     err = np.abs(vp - Y_val)
     #mae = (1.0 * err[:, 0].mean() + 1.0 * err[:, 1].mean() +

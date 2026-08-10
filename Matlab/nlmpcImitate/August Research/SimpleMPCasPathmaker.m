@@ -73,11 +73,13 @@ rng(23347)
 %clf
 % initialize
 d = zeros(1,110); %rows will automatically fill up
-for ct= 1:1000
+for ct= 1:1
     ct
     x = [0; 0; 0; 0; 0; 0];
-    goal1 = [144*rand-72, 144*rand-72, 2*pi*rand - pi,  0, 0, 0];
-    goal2 = [144*rand-72, 144*rand-72, 2*pi*rand - pi, 0, 0, 0];
+    %goal1 = [144*rand-72, 144*rand-72, 2*pi*rand - pi,  0, 0, 0];
+    %goal2 = [144*rand-72, 144*rand-72, 2*pi*rand - pi, 0, 0, 0];
+    goal1 = [10, 30, -pi,  0, 0, 0];
+    goal2 = [20, -70, pi, 0, 0, 0];
     %x = [0; 0; -3; 0; 0; 0];
     %goal1 = [-72,  0, 3,0,0 0];
     %goal2 = [60, -10, -3, 0, 0, 0];
@@ -189,7 +191,7 @@ end
 %plot(1:N+1, d(1:N+1,3))
 
 % Create MAT file
-save('HistoryDataV6','d')
+save('testing','d')
 
 
 function returnState = mecanumStateFcn(x, u)  %u is xvel, yvel, thetavel (relative to  body)
@@ -225,7 +227,7 @@ function c = stageCost(stage,x,u, stageParam)
 
     distanceToGoal = posErr;
 
-    posWeight = 1;
+    posWeight = 0.2;
     angWeight = 30;
     trackingCost = posWeight * posErr^2 + angWeight * angErr^2;
     strafeCost = u(2)^2 * 0;

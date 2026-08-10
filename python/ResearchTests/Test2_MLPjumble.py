@@ -10,7 +10,10 @@ import os
 
 matlab_files = ['HistoryDataV1.mat',
               'HistoryDataV2.mat',
-                'HistoryDataV3.mat']
+                'HistoryDataV3.mat',
+                'HistoryDataV4.mat',
+                'HistoryDataV5.mat',
+                'HistoryDataV6.mat']
 
 VAL_PERCENT = 0.15 #15% validation data
 EPOCHS        = 120
@@ -215,9 +218,15 @@ class MLPJumble(tf.keras.Model):
             hidden, activation='relu', name='wp_enc'
         )
         # output
-        self.fc1 = tf.keras.layers.Dense(256, activation='relu', name='fc1')
-        self.fc2 = tf.keras.layers.Dense(128, activation='relu', name='fc2')
-        self.fc3 = tf.keras.layers.Dense(3, name='fc3')
+        self.net = tf.keras.Sequential([
+            tf.keras.layers.Dense(300, activation='relu'),
+            tf.keras.layers.Dense(200, activation='relu'),
+            tf.keras.layers.LayerNormalization(),
+            tf.keras.layers.Dense(100, activation='relu'),
+            tf.keras.layers.Dense(45, activation='relu'),
+            tf.keras.layers.Dense(3),
+            tf.keras.layers.Activation('tanh')
+        ])
         self.out_act = tf.keras.layers.Activation('tanh', name='tanh')
 
     def call(self, inputs):
@@ -234,7 +243,7 @@ class MLPJumble(tf.keras.Model):
 
         #just concat all together
         combined = tf.concat([input_enc, h_enc, wp_enc], axis=-1)  # (B, 192)
-        out = self.out_act(self.fc3(self.fc2(self.fc1(combined))))
+        out = self.net(combined)
 
         return out
 
@@ -274,6 +283,7 @@ def train(Xq_tr, Xw_tr, Xh_tr, gs_tr, Y_tr,  #train
             print(f"  Epoch: {epoch}/{EPOCHS}  |  LOSS: {np.mean(lossList)}")
 
 
+
     vp= network([Xq_val, Xw_val, Xh_val, gs_val])
     vp = vp.numpy()
     err = np.abs(vp - Y_val)
@@ -286,8 +296,8 @@ def train(Xq_tr, Xw_tr, Xh_tr, gs_tr, Y_tr,  #train
 
 
 def main():
-    tf.random.set_seed(42)
-    np.random.seed(42)
+    tf.random.set_seed(41)
+    np.random.seed(41)
 
     data = load_data(matlab_files)
     query, waypoints, past_u, goalswitch, target, history = extract_features(data)
