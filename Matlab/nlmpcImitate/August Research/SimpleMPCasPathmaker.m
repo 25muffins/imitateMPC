@@ -69,20 +69,18 @@ planner.States(3).Max =  6*pi;
 
 
 clf
-rng(23347)
+rng(238713)
 %clf
 % initialize
 d = zeros(1,110); %rows will automatically fill up
-for ct= 1:1
+for ct= 1:3000
     ct
     x = [0; 0; 0; 0; 0; 0];
-    %goal1 = [144*rand-72, 144*rand-72, 2*pi*rand - pi,  0, 0, 0];
-    %goal2 = [144*rand-72, 144*rand-72, 2*pi*rand - pi, 0, 0, 0];
-    goal1 = [10, 30, -pi,  0, 0, 0];
-    goal2 = [20, -70, pi, 0, 0, 0];
-    %x = [0; 0; -3; 0; 0; 0];
-    %goal1 = [-72,  0, 3,0,0 0];
-    %goal2 = [60, -10, -3, 0, 0, 0];
+    goal1 = [144*rand-72, 144*rand-72, 2*pi*rand - pi,  0, 0, 0];
+    goal2 = [144*rand-72, 144*rand-72, 2*pi*rand - pi, 0, 0, 0];
+    %goal1 = [10, 30, -pi,  0, 0, 0];
+    %goal2 = [20, -70, pi, 0, 0, 0];
+  
     %goal1Candidates = [goal1(3) - 2*pi, goal1(3) + 2*pi, goal1(3), goal1(3) - 4*pi, goal1(3) + 4*pi];
     bc1 = goal1(3);%findBestCandidate(goal1Candidates, x(3));
     %goal2Candidates = [goal2(3) - 2*pi, goal2(3) + 2*pi, goal2(3), goal2(3) - 4*pi, goal2(3) + 4*pi];
@@ -106,14 +104,14 @@ for ct= 1:1
     finalGoal = waypoints(2,:)';
     for i = 2:N
         if i == (N/2+1)
-            planner.Stages(i).CostFcn = @terminalCost;
+            planner.Stages(i).CostFcn = @stageCost;
         else
             planner.Stages(i).CostFcn = @stageCost;
         end
         planner.Stages(i).ParameterLength = 6;
     end
     simData = getSimulationData(planner , 'TerminalState');
-    planner.Stages(N+1).CostFcn = @terminalCost;
+    planner.Stages(N+1).CostFcn = @terminalCost2;
     planner.Stages(N+1).ParameterLength = 6;
     
     
@@ -191,7 +189,7 @@ end
 %plot(1:N+1, d(1:N+1,3))
 
 % Create MAT file
-save('testing','d')
+save('FinalDataV1','d')
 
 
 function returnState = mecanumStateFcn(x, u)  %u is xvel, yvel, thetavel (relative to  body)
@@ -227,28 +225,43 @@ function c = stageCost(stage,x,u, stageParam)
 
     distanceToGoal = posErr;
 
-    posWeight = 0.2;
-    angWeight = 30;
+    posWeight = 25;
+    angWeight = 60;
     trackingCost = posWeight * posErr^2 + angWeight * angErr^2;
     strafeCost = u(2)^2 * 0;
     
     forwardReward = u(1)^2 * 0;
 
-    velCost = 1;
-    velocityCost = velCost * velErr^2 + 10 * angVelErr^2;
+    velCost = 13;
+    velocityCost = velCost * velErr^2 + 15 * angVelErr^2;
     controlCost = 0.1 * sum(u.^2);
     
     % Combine costs
     c = trackingCost/5 + velocityCost + strafeCost + forwardReward;
 end
-function c = terminalCost(stage, x,u, stageParam)
+function c = terminalCost1(stage, x,u, stageParam)
     goal = stageParam;
     posErr = norm(x(1:2) - goal(1:2));
     angErr = x(3) - goal(3);
     velErr = norm(x(4:5)) - norm(goal(4:5)); 
     angVelErr = abs(x(6)  - goal(6)); 
     
-    positionCost = 10 * posErr^2;      
+    positionCost = 2.5 * posErr^2;      
+    orientationCost = 45 * angErr^2;    
+    velocityCost = 1 * velErr^2;       
+    angularVelCost = 1 * angVelErr^2; 
+    
+    % Combine terminal costs
+    c = 5*(positionCost + orientationCost + velocityCost + angularVelCost);
+end
+function c = terminalCost2(stage, x,u, stageParam)
+    goal = stageParam;
+    posErr = norm(x(1:2) - goal(1:2));
+    angErr = x(3) - goal(3);
+    velErr = norm(x(4:5)) - norm(goal(4:5)); 
+    angVelErr = abs(x(6)  - goal(6)); 
+    
+    positionCost = 5 * posErr^2;      
     orientationCost = 45 * angErr^2;    
     velocityCost = 1 * velErr^2;       
     angularVelCost = 1 * angVelErr^2; 
