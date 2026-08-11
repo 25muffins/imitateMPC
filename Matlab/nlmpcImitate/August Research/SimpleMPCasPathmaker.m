@@ -73,11 +73,25 @@ rng(998713)
 %clf
 % initialize
 d = zeros(1,110); %rows will automatically fill up
-for ct= 1:2000
+for ct= 1:1
     ct
     x = [0; 0; 0; 0; 0; 0];
     goal1 = [144*rand-72, 144*rand-72, 2*pi*rand - pi,  0, 0, 0];
     goal2 = [144*rand-72, 144*rand-72, 2*pi*rand - pi, 0, 0, 0];
+
+    %g1pos = goal1;
+    %g2pos = goal2;
+
+    %outgoing = g2pos(1:2) - g1pos(1:2);
+
+    %Rleft = [ ...
+    %        cosd(45), -sind(45);
+    %        sind(45),  cosd(45)];
+
+    %g2Left = g1pos(1:2) + Rleft * outgoing';
+    %goal2 = [g2Left(1:2), goal2(3:6)];
+
+
     %goal1 = [10, 30, -pi,  0, 0, 0];
     %goal2 = [20, -70, pi, 0, 0, 0];
   
