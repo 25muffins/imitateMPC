@@ -7,15 +7,14 @@ import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 import os
 
-matlab_files = ['HistoryDataV1.mat',
-              'HistoryDataV2.mat']
+matlab_files = ['FinalDataV1.mat']
 VAL_PERCENT = 0.15 #15% validation data
-EPOCHS        = 200
+EPOCHS        = 120
 BATCH_SIZE    = 512
 LR_INITIAL    = 0.001
 HIDDEN_NEURONS = 64
 LR_DROP_EPOCH = 50       # same as MATLAB
-LAMBDA_ATTN = 0.3
+LAMBDA_ATTN = 0.1
 ALPHA = 0.05
 v_n = 30 #stands for velocity normaliztion: if using relative coords, 30, if using global coords, 30*sqrt2
 SAVE_PATH = 'tfliteFiles/Test4_crossATTN.tflite'
@@ -46,13 +45,15 @@ def extract_features(data):
 
     goalswitch = data[:, [28]].astype(np.float32)  #goalswitch
     target = data[:, [22, 23, 24]]  # ideal vx, vy, omega
+    # target = data[:, [29, 30, 31]]  # ideal vx, vy, omega
 
     # each step: [x, y, theta, sin_th, cos_th, vx, vy, omega, goalswitch]
-    history = data[:, 38:110].reshape(-1, 8, 9)  # (N, 8, 9)
+    historyraw = data[:, 38:110].reshape(-1, 8, 9)  # (N, 8, 9)
+    history = historyraw[:, :, [0, 1, 2, 3, 4, 8]]  # (N, 8, 6)
     # recency weights: oldest=1/8, newest=8/8
     recency = np.arange(1, 9) / 8.0
     recency = recency[np.newaxis, :, np.newaxis]  # (1, 8, 1)
-    history = history * recency  # (N, 8, 9)
+    history = history * recency  # (N, 8, 6)
 
     query = np.concatenate([x_y, sin_cos_th, vel, goalswitch], axis=1)
     goal1 = np.concatenate([goal1_xy, sin_cos_g1], axis=1)
@@ -72,31 +73,36 @@ def make_attention_targets(goalswitch):
     return targets  # (N, 2)
 
 
+
+
 def normalize(currentState, waypoints, past_u, target, history):
     state_norm = (currentState / np.array([72, 72, 1, 1, v_n, v_n, np.pi, 1])).astype(np.float32)
     wp_norm = (waypoints / np.array([72, 72, 1, 1])).astype(np.float32)
     past_norm = (past_u / np.array([v_n, v_n, np.pi])).astype(np.float32)
     target_norm = (target / np.array([v_n, v_n, np.pi])).astype(np.float32)
 
-    hist_div = np.array([72, 72, np.pi, 1, 1, v_n, v_n, np.pi, 1])
-    hist_norm = (history / hist_div).astype(np.float32)  # (N, 8, 9)
+    # hist_div = np.array([72, 72, np.pi, 1, 1, v_n, v_n, np.pi, 1])
+    hist_div = np.array([72, 72, np.pi, 1, 1, 1])
+    hist_norm = (history / hist_div).astype(np.float32)  # (N, 8, 6)
     return state_norm, wp_norm, past_norm, target_norm, hist_norm
 
 
 def temporal_split(query_norm, wp_norm, target_norm,
-                   attn_targets, goalswitch):
+                 goalswitch, hist_norm, attention_targets,):
 
     N = len(query_norm)
     split = int((1 - VAL_PERCENT) * N)
 
-    Xq_tr, Xq_val = query_norm[:split], query_norm[split:]
-    Xw_tr, Xw_val = wp_norm[:split], wp_norm[split:]
-    Y_tr, Y_val = target_norm[:split], target_norm[split:]
-    Yat_tr = attn_targets[:split]
-    gs_val = goalswitch[split:]
+    Xq_tr, Xq_val = query_norm[split:], query_norm[:split]
+    Xw_tr, Xw_val = wp_norm[split:], wp_norm[:split]
+    Y_tr, Y_val = target_norm[split:], target_norm[:split]
+    Xh_tr, Xh_val = hist_norm[split:], hist_norm[:split]
+    gs_tr, gs_val = goalswitch[split:], goalswitch[:split]
+    Yat_tr = attention_targets[split:]
 
     print(f"Train: {len(Xq_tr)}  Val: {len(Xq_val)}")
-    return Xq_tr, Xq_val, Xw_tr, Xw_val, Y_tr, Y_val, Yat_tr, gs_val
+    return (Xq_tr, Xq_val, Xw_tr, Xw_val,
+            Y_tr, Y_val, gs_tr, gs_val, Xh_tr, Xh_val, Yat_tr)
 
 def random_split(query_norm, wp_norm, target_norm,
                  goalswitch, hist_norm, attention_targets,
@@ -138,7 +144,7 @@ def convert_to_tflite(model, Xq_tr, Xw_tr, Xh_tr, gs_tr):
     @tf.function(input_signature=[
         tf.TensorSpec(shape=[1, 8], dtype=tf.float32),  # query
         tf.TensorSpec(shape=[1, 2, 4], dtype=tf.float32),  # waypoints
-        tf.TensorSpec(shape=[1, 8, 9], dtype=tf.float32),  # history
+        tf.TensorSpec(shape=[1, 8, 6], dtype=tf.float32),  # history
         tf.TensorSpec(shape=[1, 1], dtype=tf.float32),  # goalswitch
     ])
     def serving_fn(query, waypoints, history, goalswitch):
@@ -161,13 +167,13 @@ def convert_to_tflite(model, Xq_tr, Xw_tr, Xh_tr, gs_tr):
     converter = tf.lite.TFLiteConverter.from_concrete_functions(
         [cf], model
     )
-    converter.optimizations = [tf.lite.Optimize.DEFAULT]
-    converter.representative_dataset = representative_dataset
-    converter.target_spec.supported_ops = [
-        tf.lite.OpsSet.TFLITE_BUILTINS_INT8
-    ]
-    converter.inference_input_type = tf.float32
-    converter.inference_output_type = tf.float32
+    # converter.optimizations = [tf.lite.Optimize.DEFAULT]
+    # converter.representative_dataset = representative_dataset
+    # converter.target_spec.supported_ops = [
+    #     tf.lite.OpsSet.TFLITE_BUILTINS_INT8
+    # ]
+    # converter.inference_input_type = tf.float32
+    # converter.inference_output_type = tf.float32
 
     tflite_model = converter.convert()
     with open(SAVE_PATH, 'wb') as f:
@@ -207,13 +213,9 @@ class crossAttn(tf.keras.Model):
         # current state encoder
         self.input_enc = tf.keras.Sequential([
             tf.keras.layers.Dense(hidden, activation='relu',
-                                  input_shape=(7,))
+                                  input_shape=(4,))
         ], name='query_enc')
         #history encoder for attn
-        self.history_proj = tf.keras.layers.TimeDistributed(
-            tf.keras.layers.Dense(hidden, activation='relu'),
-            name='history_proj'
-        )  # (B, 8, 9) → (B, 8, 64)
 
         # waypoint encoder shared across both goals
         self.wp_enc = tf.keras.layers.TimeDistributed(
@@ -238,31 +240,43 @@ class crossAttn(tf.keras.Model):
         )
 
         # output
-        self.fc1 = tf.keras.layers.Dense(256, activation='relu', name='fc1')
-        self.fc2 = tf.keras.layers.Dense(128, activation='relu', name='fc2')
-        self.fc3 = tf.keras.layers.Dense(3, name='fc3')
-        self.out_act = tf.keras.layers.Activation('tanh', name='tanh')
+        self.net = tf.keras.Sequential([
+            tf.keras.layers.Dense(200, activation='relu'),
+            #tf.keras.layers.Dropout(0.2),
+            tf.keras.layers.Dense(200, activation='relu'),
+            tf.keras.layers.LayerNormalization(),
+            tf.keras.layers.Dense(100, activation='relu'),
+            tf.keras.layers.Dense(45, activation='relu'),
+            tf.keras.layers.Dense(3),
+            tf.keras.layers.Activation('tanh')
+        ])
+        self.history_proj = tf.keras.layers.TimeDistributed(
+            tf.keras.layers.Dense(hidden, activation='relu'),
+            name='history_proj'
+        )  # (B, 8, 9) → (B, 8, 64)
 
     def call(self, inputs):
         query, waypoints, history, goalswitch = inputs
 
         #shaping input (x, y, sin, cos, vx, vy, vomega), so 7 total
-        inputFeatures = tf.gather(query, [0, 1, 2, 3, 4, 5, 6], axis=1)
+        inputFeatures = tf.gather(query, [0, 1, 2, 3, 7], axis=1)
 
         #encoder blocks
         input_enc  = self.input_enc(inputFeatures)  # (B, 64)
         h_attention_enc = self.history_proj(history)
+
         wp_flat = tf.reshape(waypoints, [-1, 8])
         kv = self.wp_enc(waypoints)  # (B, 64)
 
-        # Q = self.W_q(h_attention_enc)  # (B, 8, 64)
-        Q = self.W_q(h_attention_enc)  # (B, 1, 64)
+        Q = self.W_q(h_attention_enc)  # (B, 8, 64)
+        # Q = tf.expand_dims(self.W_q(input_enc), 1)  # (B, 1, 64)
         K = self.W_k(kv)  # (B, 2, 64)
         V = self.W_v(kv)  # (B, 2, 64)
 
         scores = tf.matmul(Q, K, transpose_b=True) / self.scale  # (B, 8, 2)
         weights = tf.nn.softmax(scores, axis=-1)
         context = tf.matmul(weights, V)
+        # context = tf.squeeze(context, axis=1)
 
         #summarize
         H_enriched = tf.concat([h_attention_enc, context], axis=-1)  # (B, 8, 128)
@@ -272,8 +286,8 @@ class crossAttn(tf.keras.Model):
         wp_context = tf.squeeze(tf.matmul(mean_w, V), axis=1)  # (B, 64)
 
         #just concat all together
-        combined = tf.concat([input_enc, h_summary, wp_context], axis=-1)  # (B, 192)
-        out = self.out_act(self.fc3(self.fc2(self.fc1(combined))))
+        combined = tf.concat([input_enc, h_summary, wp_flat], axis=-1)  # (B, 192)
+        out = self.net(combined)
 
         mean_attn = tf.reduce_mean(weights, axis=1)
         return out, mean_attn, weights
@@ -327,6 +341,7 @@ def train(Xq_tr, Xw_tr, Xh_tr, gs_tr, Y_tr,  #train
 
 
     vp, mean_attn, weights = network([Xq_val, Xw_val, Xh_val, gs_val])
+    network.summary()
     vp = vp.numpy()
     err = np.abs(vp - Y_val)
     mean_attn = mean_attn.numpy()
@@ -354,7 +369,7 @@ def main():
     attn_targets = make_attention_targets(goalswitch)
 
     (Xq_tr, Xq_val, Xw_tr, Xw_val,
-     Y_tr, Y_val, gs_tr, gs_val, Xh_tr, Xh_val, Yat_tr) = random_split(
+     Y_tr, Y_val, gs_tr, gs_val, Xh_tr, Xh_val, Yat_tr) = temporal_split(
         query_norm, wp_norm, target_norm, goalswitch, hist_norm, attn_targets,
     )
 

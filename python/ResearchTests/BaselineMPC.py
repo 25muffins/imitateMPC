@@ -7,12 +7,7 @@ import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 import os
 
-matlab_files = ['HistoryDataV1.mat',
-              'HistoryDataV2.mat',
-                'HistoryDataV3.mat',
-                'HistoryDataV4.mat',
-                'HistoryDataV5.mat',
-                'HistoryDataV6.mat']
+matlab_files = ['FinalDataV1.mat']
 
 VAL_PERCENT = 0.15 #15% validation data
 EPOCHS        = 120
@@ -228,6 +223,7 @@ def train_baseline(Xq_tr, Xw_tr, Y_tr, Xq_val, Xw_val, Y_val):
 
 
     vp = baseline([Xq_val, Xw_val]).numpy()
+    baseline.summary()
     err = np.abs(vp - Y_val)
     #mae = (1.0 * err[:, 0].mean() + 1.0 * err[:, 1].mean() +
     #       1.0 * err[:, 2].mean())

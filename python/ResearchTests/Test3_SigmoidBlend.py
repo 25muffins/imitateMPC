@@ -7,12 +7,7 @@ import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 import os
 
-matlab_files = ['HistoryDataV1.mat',
-              'HistoryDataV2.mat',
-                'HistoryDataV3.mat',
-                'HistoryDataV4.mat',
-                'HistoryDataV5.mat',
-                'HistoryDataV6.mat']
+matlab_files = ['FinalDataV1.mat']
 
 VAL_PERCENT = 0.15 #15% validation data
 EPOCHS        = 120
@@ -52,11 +47,12 @@ def extract_features(data):
     # target = data[:, [29, 30, 31]]  # ideal vx, vy, omega
 
     # each step: [x, y, theta, sin_th, cos_th, vx, vy, omega, goalswitch]
-    history = data[:, 38:110].reshape(-1, 8, 9)  # (N, 8, 9)
+    historyraw = data[:, 38:110].reshape(-1, 8, 9)  # (N, 8, 9)
+    history = historyraw[:, :, [0, 1, 2, 3, 4, 8]]  # (N, 8, 6)
     # recency weights: oldest=1/8, newest=8/8
     recency = np.arange(1, 9) / 8.0
     recency = recency[np.newaxis, :, np.newaxis]  # (1, 8, 1)
-    history = history * recency  # (N, 8, 9)
+    history = history * recency  # (N, 8, 6)
 
     query = np.concatenate([x_y, sin_cos_th, vel, goalswitch], axis=1)
     goal1 = np.concatenate([goal1_xy, sin_cos_g1], axis=1)
@@ -71,13 +67,14 @@ def normalize(currentState, waypoints, past_u, target, history):
     past_norm = (past_u / np.array([v_n, v_n, np.pi])).astype(np.float32)
     target_norm = (target / np.array([v_n, v_n, np.pi])).astype(np.float32)
 
-    hist_div = np.array([72, 72, np.pi, 1, 1, v_n, v_n, np.pi, 1])
-    hist_norm = (history / hist_div).astype(np.float32)  # (N, 8, 9)
+    # hist_div = np.array([72, 72, np.pi, 1, 1, v_n, v_n, np.pi, 1])
+    hist_div = np.array([72, 72, np.pi, 1, 1, 1])
+    hist_norm = (history / hist_div).astype(np.float32)  # (N, 8, 6)
     return state_norm, wp_norm, past_norm, target_norm, hist_norm
 
 
 def temporal_split(query_norm, wp_norm, target_norm,
-                   attn_targets, goalswitch):
+                   goalswitch, hist_norm):
 
     N = len(query_norm)
     split = int((1 - VAL_PERCENT) * N)
@@ -85,11 +82,12 @@ def temporal_split(query_norm, wp_norm, target_norm,
     Xq_tr, Xq_val = query_norm[:split], query_norm[split:]
     Xw_tr, Xw_val = wp_norm[:split], wp_norm[split:]
     Y_tr, Y_val = target_norm[:split], target_norm[split:]
-    Yat_tr = attn_targets[:split]
-    gs_val = goalswitch[split:]
+    Xh_tr, Xh_val = hist_norm[:split], hist_norm[split:]
+    gs_tr, gs_val = goalswitch[:split], goalswitch[split:]
 
     print(f"Train: {len(Xq_tr)}  Val: {len(Xq_val)}")
-    return Xq_tr, Xq_val, Xw_tr, Xw_val, Y_tr, Y_val, Yat_tr, gs_val
+    return (Xq_tr, Xq_val, Xw_tr, Xw_val,
+            Y_tr, Y_val, gs_tr, gs_val, Xh_tr, Xh_val)
 
 def random_split(query_norm, wp_norm, target_norm,
                  goalswitch, hist_norm,
@@ -130,7 +128,7 @@ def convert_to_tflite(model, Xq_tr, Xw_tr, Xh_tr, gs_tr):
     @tf.function(input_signature=[
         tf.TensorSpec(shape=[1, 8], dtype=tf.float32),  # query
         tf.TensorSpec(shape=[1, 2, 4], dtype=tf.float32),  # waypoints
-        tf.TensorSpec(shape=[1, 8, 9], dtype=tf.float32),  # history
+        tf.TensorSpec(shape=[1, 8, 6], dtype=tf.float32),  # history
         tf.TensorSpec(shape=[1, 1], dtype=tf.float32),  # goalswitch
     ])
     def serving_fn(query, waypoints, history, goalswitch):
@@ -199,7 +197,7 @@ class SigmoidBlend(tf.keras.Model):
         # current state encoder
         self.input_enc = tf.keras.Sequential([
             tf.keras.layers.Dense(hidden, activation='relu',
-                                  input_shape=(7,))
+                                  input_shape=(4,))
         ], name='query_enc')
         # history encoder
         self.history_enc = tf.keras.layers.RNN(
@@ -228,7 +226,7 @@ class SigmoidBlend(tf.keras.Model):
         query, waypoints, history, goalswitch = inputs
 
         #shaping input (x, y, sin, cos, vx, vy, vomega), so 7 total
-        inputFeatures = tf.gather(query, [0, 1, 2, 3, 4, 5, 6], axis=1)
+        inputFeatures = tf.gather(query, [0, 1, 2, 3], axis=1)
         active_wp = tf.where(
             goalswitch < 0.5,
             waypoints[:, 0, :],  # (B, 4)
@@ -293,10 +291,10 @@ def train(Xq_tr, Xw_tr, Xh_tr, gs_tr, Y_tr,  #train
         if epoch % 10 == 0:
             print(f"  Epoch: {epoch}/{EPOCHS}  |  LOSS: {np.mean(lossList)}")
 
-        network.summary()
 
 
     vp, sigmoid_w = network([Xq_val, Xw_val, Xh_val, gs_val])
+    network.summary()
     vp = vp.numpy()
     err = np.abs(vp - Y_val)
     #mae = (1.0 * err[:, 0].mean() + 1.0 * err[:, 1].mean() +
@@ -305,6 +303,7 @@ def train(Xq_tr, Xw_tr, Xh_tr, gs_tr, Y_tr,  #train
     mse = np.mean((vp - Y_val) ** 2)
     print(sigmoid_w.numpy().mean(axis = 0))
     print(f"  val_mae: {mae:.4f}  |  val_mse: {mse:.4f}")
+
     return network, mae, mse
 
 

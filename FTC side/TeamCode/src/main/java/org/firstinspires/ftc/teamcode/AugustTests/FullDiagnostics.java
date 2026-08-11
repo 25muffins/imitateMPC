@@ -59,20 +59,20 @@ public class FullDiagnostics extends LinearOpMode {
     private ElapsedTime runTimer = new ElapsedTime();
     private FtcDashboard dashboard;
 
-    public static float[] goal1            = {20, 10, 1};
-    public static float[] goal2            = {-20, -40, -1};
+    public static float[] goal1            = {40, 10, 1};
+    public static float[] goal2            = {20, -40, -1};
     public static float[] startPos         = {0, 0, 0};
     public static float   GOAL_SWITCH_DIST = 5.0f;
     public static float   VELOCITY_SCALE   = 1.0f;
-    public static String  MODEL_FILE       = "Test67_crossATTN.tflite";
-    public static String  MODEL_NAME       = "test3";
+    public static String  MODEL_FILE       = "Test2_MLPJumble.tflite";
+    public static String  MODEL_NAME       = "test2";
 
     private static final float POS_DIV = 72.0f;
     private static final float VEL_DIV = 30.0f;
     private static final float ANG_DIV = (float) Math.PI;
 
     private static final int HISTORY_STEPS    = 8;
-    private static final int HISTORY_FEATURES = 9;
+    private static final int HISTORY_FEATURES = 5;
     private float[][][] rawHistoryBuf      = new float[1][HISTORY_STEPS][HISTORY_FEATURES];
     private float[][][] weightedHistoryBuf = new float[1][HISTORY_STEPS][HISTORY_FEATURES];
     private boolean historyInitialized     = false;
@@ -170,14 +170,11 @@ public class FullDiagnostics extends LinearOpMode {
         runTimer.reset();
         timer.reset();
         double loopTimer = timer.milliseconds();
+        double startTimer = timer.milliseconds();
+        float[] lastHist = {0.0f, 0.0f, 0.0f};
 
         while (opModeIsActive() && !done) {
-//            if(timer.milliseconds() <= loopTimer + 100){
-//                continue;
-//            }
-//            else{
-//                loopTimer = timer.milliseconds();
-//            }
+
             long loopStart = System.currentTimeMillis();
 
             localizer.update();
@@ -239,6 +236,9 @@ public class FullDiagnostics extends LinearOpMode {
             query[0][5] = vy      / VEL_DIV;
             query[0][6] = omega   / ANG_DIV;
             query[0][7] = goalSwitch;
+            telemetry.addData("vx", vx);
+            telemetry.addData("vy", vy);
+            telemetry.addData("omega", omega);
 
             float[][][] waypoints = new float[1][2][4];
             waypoints[0][0][0] = relG1X / POS_DIV;
@@ -254,17 +254,17 @@ public class FullDiagnostics extends LinearOpMode {
             gs[0][0] = goalSwitch;
 
             float[] newHistStep = new float[HISTORY_FEATURES];
-            newHistStep[0] = relX    / POS_DIV;
-            newHistStep[1] = relY    / POS_DIV;
-            newHistStep[2] = heading / ANG_DIV;
+            newHistStep[0] = (relX - lastHist[0])   / POS_DIV;
+            newHistStep[1] = (relY - lastHist[1])    / POS_DIV;
+            newHistStep[2] = (heading - lastHist[2]) / ANG_DIV;
             newHistStep[3] = sinTh;
             newHistStep[4] = cosTh;
-            newHistStep[5] = vx      / VEL_DIV;
-            newHistStep[6] = vy      / VEL_DIV;
-            newHistStep[7] = omega   / ANG_DIV;
-            newHistStep[8] = goalSwitch;
+//            newHistStep[5] = vx      / VEL_DIV;
+//            newHistStep[6] = vy      / VEL_DIV;
+//            newHistStep[7] = omega   / ANG_DIV;
+//            newHistStep[5] = goalSwitch;
 
-            if(timer.milliseconds() >= loopTimer + 10){
+            if(timer.milliseconds() >= loopTimer + 0){
                 updateHistory(newHistStep);
                 loopTimer = timer.milliseconds();
             }
@@ -382,7 +382,7 @@ public class FullDiagnostics extends LinearOpMode {
             tel.update();
 
             drawField(pose, relX, relY, relG1X, relG1Y, relG2X, relG2Y);
-
+            lastHist = new float[]{relX, relY, heading};
 
         }
 
@@ -561,8 +561,7 @@ public class FullDiagnostics extends LinearOpMode {
             float r = (t + 1) / (float) HISTORY_STEPS;
             bHist[0][t] = new float[]{
                     0.1f*r, -0.1f*r, 0.05f*r,
-                    0.7f, 0.7f,
-                    0.3f*r, 0.1f*r, 0.05f*r, 0.0f};
+                    0.7f, 0.7f};
         }
 
         float[][] bGs    = new float[1][1];
@@ -831,7 +830,7 @@ public class FullDiagnostics extends LinearOpMode {
     private void updateHistory(float[] newStep) {
         if (!historyInitialized) {
             for (int t = 0; t < HISTORY_STEPS; t++) {
-                rawHistoryBuf[0][t] = newStep.clone();
+                rawHistoryBuf[0][t] = new float[HISTORY_FEATURES];
             }
             historyInitialized = true;
         } else {
@@ -841,10 +840,10 @@ public class FullDiagnostics extends LinearOpMode {
             rawHistoryBuf[0][HISTORY_STEPS - 1] = prevStep.clone();
         }
         for (int t = 0; t < HISTORY_STEPS; t++) {
-            float recency = (t + 1) / (float) HISTORY_STEPS;
+//            float recency = (t + 1) / (float) HISTORY_STEPS;
             for (int f = 0; f < HISTORY_FEATURES; f++) {
                 weightedHistoryBuf[0][t][f] =
-                        rawHistoryBuf[0][t][f] * recency;
+                        rawHistoryBuf[0][t][f];//* recency;
             }
         }
         prevStep = newStep;

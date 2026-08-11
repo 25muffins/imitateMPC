@@ -69,11 +69,11 @@ planner.States(3).Max =  6*pi;
 
 
 clf
-rng(23347)
+rng(238713)
 %clf
 % initialize
 d = zeros(1,110); %rows will automatically fill up
-for ct= 1:10
+for ct= 1:3000
     ct
     x = [0; 0; 0; 0; 0; 0];
     goal1 = [144*rand-72, 144*rand-72, 2*pi*rand - pi,  0, 0, 0];
@@ -150,9 +150,12 @@ for ct= 1:10
     historyMatrix = zeros(1,72);
     lastHistoryRow = zeros(1,9);
     for  i = 1:a(1)
-        historyMatrix = [historyMatrix(10:end), lastHistoryRow];
+
+        
         currentPos = xTrackHistory(i,:);
-    
+        diff = [currentPos(1)-lastHistoryRow(1), currentPos(2)-lastHistoryRow(2), currentPos(3)-lastHistoryRow(3), sin(currentPos(3)),cos(currentPos(3))]
+        historyMatrix = [historyMatrix(10:end), diff];
+
         dist1 = sqrt((currentPos(1)-goal1(1))^2 +  (currentPos(2)-goal1(2))^2);
         dist2 = sqrt((currentPos(1)-goal2(1))^2 +  (currentPos(2)-goal2(2))^2);
         angle1 =  atan2(goal1(2)  -  currentPos(2), goal1(1) - currentPos(1));
@@ -225,15 +228,15 @@ function c = stageCost(stage,x,u, stageParam)
 
     distanceToGoal = posErr;
 
-    posWeight = 0.4;
-    angWeight = 30;
+    posWeight = 25;
+    angWeight = 60;
     trackingCost = posWeight * posErr^2 + angWeight * angErr^2;
     strafeCost = u(2)^2 * 0;
     
     forwardReward = u(1)^2 * 0;
 
-    velCost = 1;
-    velocityCost = velCost * velErr^2 + 10 * angVelErr^2;
+    velCost = 13;
+    velocityCost = velCost * velErr^2 + 15 * angVelErr^2;
     controlCost = 0.1 * sum(u.^2);
     
     % Combine costs
@@ -261,7 +264,7 @@ function c = terminalCost2(stage, x,u, stageParam)
     velErr = norm(x(4:5)) - norm(goal(4:5)); 
     angVelErr = abs(x(6)  - goal(6)); 
     
-    positionCost = 10 * posErr^2;      
+    positionCost = 5 * posErr^2;      
     orientationCost = 45 * angErr^2;    
     velocityCost = 1 * velErr^2;       
     angularVelCost = 1 * angVelErr^2; 

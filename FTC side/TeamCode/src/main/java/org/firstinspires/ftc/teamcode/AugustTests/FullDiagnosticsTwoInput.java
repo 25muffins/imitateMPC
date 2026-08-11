@@ -60,7 +60,7 @@ public class FullDiagnosticsTwoInput extends LinearOpMode {
     private FtcDashboard dashboard;
 
     public static float[] goal1            = {20, 10, 1};
-    public static float[] goal2            = {-20, -40, -1};
+    public static float[] goal2            = {20, -40, -1};
     public static float[] startPos         = {0, 0, 0};
     public static float   GOAL_SWITCH_DIST = 5.0f;
     public static float   VELOCITY_SCALE   = 1.0f;
