@@ -59,15 +59,15 @@ public class FullDiagnosticsTwoInput extends LinearOpMode {
     private ElapsedTime runTimer = new ElapsedTime();
     private FtcDashboard dashboard;
 
-    public static float[] goal1            = {0, -20, 0};
-    public static float[] goal2            = {10, -50, 0};
+    public static float[] goal1            = {30, 0, 0};
+    public static float[] goal2            = {55, -15, 0};
     public static float[] startPos         = {0, 0, 0};
-
-
     public static float   GOAL_SWITCH_DIST = 3.0f;
     public static float   VELOCITY_SCALE   = 1.0f;
     public static String  MODEL_FILE       = "Test0_Baseline.tflite";
-    public static String  MODEL_NAME       = "test0_baseline";
+    public static String  MODEL_NAME       = "MLP";
+    public static int  ROUTE       = 4;
+    public static int  SEED       = 1;
 
     private static final float POS_DIV = 72.0f;
     private static final float VEL_DIV = 30.0f;
@@ -433,7 +433,7 @@ public class FullDiagnosticsTwoInput extends LinearOpMode {
 
         String timestamp = new SimpleDateFormat(
                 "yyyyMMdd_HHmmss", Locale.US).format(new Date());
-        String filename  = "M0_contract_" + MODEL_NAME + "_" + timestamp + ".csv";
+        String filename  = MODEL_NAME + "_Summary_" + ROUTE + "_" + SEED + ".csv";
 
         File dir  = Environment.getExternalStoragePublicDirectory(
                 Environment.DIRECTORY_DOWNLOADS);
@@ -585,8 +585,8 @@ public class FullDiagnosticsTwoInput extends LinearOpMode {
         float vPct = 100f * violations / BENCHMARK_CALLS;
 
 
-        saveM5Results(lat_ms, p50, p95, p99,
-                lMin, lMax, mean, violations, vPct);
+//        saveM5Results(lat_ms, p50, p95, p99,
+//                lMin, lMax, mean, violations, vPct);
 
         tel.addData("── M5 LATENCY ──────────", "");
         tel.addData("model",          MODEL_NAME);
@@ -714,7 +714,7 @@ public class FullDiagnosticsTwoInput extends LinearOpMode {
     private void saveMetrics() {
         String timestamp = new SimpleDateFormat(
                 "yyyyMMdd_HHmmss", Locale.US).format(new Date());
-        String filename  = MODEL_FILE + "_" + timestamp + ".csv";
+        String filename  = MODEL_NAME + "_Full_" + ROUTE + "_" + SEED + ".csv";
         File dir  = Environment.getExternalStoragePublicDirectory(
                 Environment.DIRECTORY_DOWNLOADS);
         File file = new File(dir, filename);
