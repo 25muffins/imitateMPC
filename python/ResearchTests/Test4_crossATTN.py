@@ -297,7 +297,7 @@ class crossAttn(tf.keras.Model):
 
         wp_encoded = self.wp_enc1(wp_flat)
         #just concat all together
-        combined = tf.concat([inputFeatures, h_summary, wp_flat], axis=-1)  # (B, 192)
+        combined = tf.concat([input_enc, h_summary, wp_encoded], axis=-1)  # (B, 192)
         out = self.net(combined)
 
         mean_attn = tf.reduce_mean(weights, axis=1)
