@@ -7,7 +7,8 @@ import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 import os
 
-matlab_files = ['FinalDataV1.mat']
+matlab_files = ['GRUDiffV1.mat',
+                'GRUDiffV2.mat']
 
 VAL_PERCENT = 0.15 #15% validation data
 EPOCHS        = 120
@@ -48,11 +49,11 @@ def extract_features(data):
 
     # each step: [x, y, theta, sin_th, cos_th, vx, vy, omega, goalswitch]
     historyraw = data[:, 38:110].reshape(-1, 8, 9)  # (N, 8, 9)
-    history = historyraw[:, :, [0, 1, 2, 3, 4, 8]]  # (N, 8, 6)
+    history = historyraw[:, :, [0, 1, 2, 3, 4]]  # (N, 8, 6)
     # recency weights: oldest=1/8, newest=8/8
     recency = np.arange(1, 9) / 8.0
     recency = recency[np.newaxis, :, np.newaxis]  # (1, 8, 1)
-    history = history * recency  # (N, 8, 6)
+    history = history # (N, 8, 6)
 
     query = np.concatenate([x_y, sin_cos_th, vel, goalswitch], axis=1)
     goal1 = np.concatenate([goal1_xy, sin_cos_g1], axis=1)
@@ -68,7 +69,7 @@ def normalize(currentState, waypoints, past_u, target, history):
     target_norm = (target / np.array([v_n, v_n, np.pi])).astype(np.float32)
 
     # hist_div = np.array([72, 72, np.pi, 1, 1, v_n, v_n, np.pi, 1])
-    hist_div = np.array([72, 72, np.pi, 1, 1, 1])
+    hist_div = np.array([72, 72, np.pi, 1, 1])
     hist_norm = (history / hist_div).astype(np.float32)  # (N, 8, 6)
     return state_norm, wp_norm, past_norm, target_norm, hist_norm
 
@@ -128,7 +129,7 @@ def convert_to_tflite(model, Xq_tr, Xw_tr, Xh_tr, gs_tr):
     @tf.function(input_signature=[
         tf.TensorSpec(shape=[1, 8], dtype=tf.float32),  # query
         tf.TensorSpec(shape=[1, 2, 4], dtype=tf.float32),  # waypoints
-        tf.TensorSpec(shape=[1, 8, 6], dtype=tf.float32),  # history
+        tf.TensorSpec(shape=[1, 8, 5], dtype=tf.float32),  # history
         tf.TensorSpec(shape=[1, 1], dtype=tf.float32),  # goalswitch
     ])
     def serving_fn(query, waypoints, history, goalswitch):
@@ -151,13 +152,13 @@ def convert_to_tflite(model, Xq_tr, Xw_tr, Xh_tr, gs_tr):
     converter = tf.lite.TFLiteConverter.from_concrete_functions(
         [cf], model
     )
-    converter.optimizations = [tf.lite.Optimize.DEFAULT]
-    converter.representative_dataset = representative_dataset
-    converter.target_spec.supported_ops = [
-        tf.lite.OpsSet.TFLITE_BUILTINS_INT8
-    ]
-    converter.inference_input_type = tf.float32
-    converter.inference_output_type = tf.float32
+    # converter.optimizations = [tf.lite.Optimize.DEFAULT]
+    # converter.representative_dataset = representative_dataset
+    # converter.target_spec.supported_ops = [
+    #     tf.lite.OpsSet.TFLITE_BUILTINS_INT8
+    # ]
+    # converter.inference_input_type = tf.float32
+    # converter.inference_output_type = tf.float32
 
     tflite_model = converter.convert()
     with open(SAVE_PATH, 'wb') as f:
@@ -221,6 +222,15 @@ class SigmoidBlend(tf.keras.Model):
         self.fc3 = tf.keras.layers.Dense(3, name='fc3')
         self.out_act = tf.keras.layers.Activation('tanh', name='tanh')
         self.gate_proj = tf.keras.layers.Dense(1, name='gate_proj')
+        self.net = tf.keras.Sequential([
+            tf.keras.layers.Dense(300, activation='relu'),
+            tf.keras.layers.Dense(200, activation='relu'),
+            tf.keras.layers.LayerNormalization(),
+            tf.keras.layers.Dense(100, activation='relu'),
+            tf.keras.layers.Dense(45, activation='relu'),
+            tf.keras.layers.Dense(3),
+            tf.keras.layers.Activation('tanh')
+        ])
 
     def call(self, inputs):
         query, waypoints, history, goalswitch = inputs
@@ -243,14 +253,14 @@ class SigmoidBlend(tf.keras.Model):
         active_wp_enc = self.wp_enc(active_wp)  # (B, 64)
         inactive_wp_enc = self.wp_enc(inactive_wp)  # (B, 64)
 
-        gate_input = tf.concat([input_enc, h_enc], axis=-1)  # (B, 128)
+        gate_input = tf.concat([input_enc], axis=-1)  # (B, 128)
         alpha = tf.nn.sigmoid(self.gate_proj(gate_input))  # (B, 1)
 
         wp_blended = (1 - alpha) * active_wp_enc + alpha * inactive_wp_enc  # (B, 64)
 
         #just concat all together
-        combined = tf.concat([input_enc, h_enc, wp_blended], axis=-1)  # (B, 192)
-        out = self.out_act(self.fc3(self.fc2(self.fc1(combined))))
+        combined = tf.concat([input_enc, wp_blended], axis=-1)  # (B, 192)
+        out = self.net(combined)
 
         sigmoid_w = tf.concat([1 - alpha, alpha], axis=-1)  # (B, 2)
         return out, sigmoid_w

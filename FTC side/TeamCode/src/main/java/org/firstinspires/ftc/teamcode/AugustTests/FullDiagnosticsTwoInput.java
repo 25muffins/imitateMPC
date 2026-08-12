@@ -59,10 +59,12 @@ public class FullDiagnosticsTwoInput extends LinearOpMode {
     private ElapsedTime runTimer = new ElapsedTime();
     private FtcDashboard dashboard;
 
-    public static float[] goal1            = {20, 10, 1};
-    public static float[] goal2            = {20, -40, -1};
+    public static float[] goal1            = {0, -20, 0};
+    public static float[] goal2            = {10, -50, 0};
     public static float[] startPos         = {0, 0, 0};
-    public static float   GOAL_SWITCH_DIST = 5.0f;
+
+
+    public static float   GOAL_SWITCH_DIST = 3.0f;
     public static float   VELOCITY_SCALE   = 1.0f;
     public static String  MODEL_FILE       = "Test0_Baseline.tflite";
     public static String  MODEL_NAME       = "test0_baseline";
@@ -76,8 +78,8 @@ public class FullDiagnosticsTwoInput extends LinearOpMode {
     private float prevVy    = 0;
     private float prevOmega = 0;
 
-    public static double kV      = 0.15;
-    public static double kVTheta = 0.1;
+    public static double kV      = 0.07;
+    public static double kVTheta = 0.05;
 
     // ── M5 latency ────────────────────────────────────────────────
     private static final int   WARMUP_CALLS    = 200;
@@ -347,14 +349,14 @@ public class FullDiagnosticsTwoInput extends LinearOpMode {
 
         // ── save all diagnostics ──────────────────────────────────
         saveMetrics();
-        saveM0Contract();
+        saveM0Contract(tel);
         printSummary();
         tel.update();
         sleep(5000);
     }
 
 
-    private void saveM0Contract() {
+    private void saveM0Contract(Telemetry tel) {
         if (metricsLog.isEmpty()) return;
 
         int   n           = metricsLog.size();
@@ -400,18 +402,33 @@ public class FullDiagnosticsTwoInput extends LinearOpMode {
         //crosstrack
         float sumSquaredCTE = 0.0f;
         int cteCount = 0;
+        float sumCTE = 0;
 
         for (float[] row : metricsLog) {
             float crossTrackErr = row[11];
-
             if (Float.isFinite(crossTrackErr)) {
-                sumSquaredCTE += crossTrackErr * crossTrackErr;
+                float squaredErr = crossTrackErr * crossTrackErr;
+                sumCTE +=crossTrackErr;
+                sumSquaredCTE += squaredErr;
                 cteCount++;
             }
         }
 
         float crossTrackRMSE = (cteCount > 0)
                 ? (float) Math.sqrt(sumSquaredCTE / cteCount)
+                : Float.NaN;
+        // Standard deviation of cross-track error
+        float crossTrackMean = (cteCount > 0)
+                ? sumCTE / cteCount
+                : Float.NaN;
+
+        float crossTrackVariance = (cteCount > 1)
+                ? (sumSquaredCTE - cteCount * crossTrackMean * crossTrackMean)
+                / (cteCount - 1)
+                : Float.NaN;
+
+        float crossTrackStdDev = (cteCount > 1)
+                ? (float) Math.sqrt(Math.max(0.0, crossTrackVariance))
                 : Float.NaN;
 
         String timestamp = new SimpleDateFormat(
@@ -449,6 +466,7 @@ public class FullDiagnosticsTwoInput extends LinearOpMode {
             w.write(String.format(Locale.US,
                     "M3_peak_control_jump,%.5f\n", m3_jump));
             // M4
+            tel.addData("Peak Control Jump", m3_jump);
             w.write(String.format(Locale.US,
                     "M4_completion_k,%d\n",     m4_k));
             w.write(String.format(Locale.US,
@@ -482,13 +500,18 @@ public class FullDiagnosticsTwoInput extends LinearOpMode {
                     "avg_inference_ms,%.3f\n",  sumInf / n));
             w.write(String.format(Locale.US,
                     "RMSE Cross Track,%.3f\n",  crossTrackRMSE));
+            tel.addData("RMSE Cross Track,%.3f\n",  crossTrackRMSE);
+            w.write(String.format(Locale.US,
+                    "CT STD DEV,%.3f\n",  crossTrackStdDev));
+            tel.addData("STD DEV\n",  crossTrackStdDev);
 
             w.flush();
             w.close();
-            telemetry.addData("M0 saved", file.getAbsolutePath());
+            tel.addData("M0 saved", file.getAbsolutePath());
+            tel.update();
 
         } catch (IOException e) {
-            telemetry.addData("M0 save error", e.getMessage());
+            tel.addData("M0 save error", e.getMessage());
         }
     }
 

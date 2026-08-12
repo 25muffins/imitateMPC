@@ -8,7 +8,8 @@ from sklearn.model_selection import train_test_split
 import os
 
 
-matlab_files = ['GRUDiffV1.mat']
+matlab_files = ['GRUDiffV1.mat',
+                'GRUDiffV2.mat']
 
 VAL_PERCENT = 0.15 #15% validation data
 EPOCHS        = 120

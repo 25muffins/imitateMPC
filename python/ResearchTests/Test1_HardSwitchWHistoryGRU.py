@@ -12,12 +12,13 @@ log_dir   = "logs/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
 writer    = tf.summary.create_file_writer(log_dir)
 print(f"TensorBoard logs: {log_dir}")
 print(f"Run: tensorboard --logdir logs/")
-matlab_files = ['GRUDiffV1.mat']
+matlab_files = ['GRUDiffV1.mat',
+                'GRUDiffV2.mat']
 # matlab_files = ['DistanceBasedV1.mat',
 #                 'DistanceBasedV2.mat']
 
 VAL_PERCENT = 0.15 #15% validation data
-EPOCHS        = 90
+EPOCHS        = 120
 BATCH_SIZE    = 512
 LR_INITIAL    = 0.001
 HIDDEN_NEURONS = 64
@@ -253,8 +254,8 @@ class HardswitchWithHistoryGRU(tf.keras.Model):
         wp_enc = self.wp_enc(active_wp)  # (B, 64)
 
         #just concat all together
-        combined = tf.concat([input_enc, wp_enc, h_enc], axis=-1)  # (B, 192)
-        out = self.out_act(self.fc3(self.fc2(self.fc1(combined))))
+        combined = tf.concat([input_enc, wp_enc], axis=-1)  # (B, 192)
+        out = self.net(combined)
 
         # hard weights for logging
         hard_w = tf.concat([
