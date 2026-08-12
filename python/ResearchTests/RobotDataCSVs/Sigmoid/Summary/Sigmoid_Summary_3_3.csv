@@ -1,0 +1,30 @@
+field,value
+model,Sigmoid
+model_file,Test3_SigmoidBlend.tflite
+timestamp,20260812_165835
+duration_s,1.846
+steps,53
+goal1,[0.0, -20.0, 0.0]
+goal2,[10.0, -50.0, 0.0]
+goal_switch_dist,5.00
+goal_switch_time_s,0.887
+M2_handoff_fail_k,0
+M2_handoff_fail_N,1
+M2_handoff_fail_pct,0.0
+M3_peak_control_jump,13.86283
+M4_completion_k,1
+M4_completion_N,1
+M4_completion_pct,100.0
+M5_inf_p50_ms,0.583
+M5_inf_p95_ms,0.757
+M5_deadline_ms,10.0
+M5_deadline_misses,0
+M5_deadline_miss_pct,0.00
+avg_pos_error_in,18.4530
+max_pos_error_in,36.3433
+avg_crosstrack_in,2.4069
+max_crosstrack_in,6.3246
+avg_theta_error_rad,0.0104
+avg_inference_ms,0.597
+RMSE Cross Track,3.191
+CT STD DEV,2.116
