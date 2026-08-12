@@ -1,0 +1,23 @@
+Base CT RMSE avg:
+Base std dev avg:
+Base peak control:
+Base handoff %:
+Base completion %:
+
+Hard CT RMSE avg:
+Hard std dev avg:
+Hard peak control:
+Hard handoff %:
+Hard completion %:
+
+Sigmoid CT RMSE avg:
+Sigmoid std dev avg:
+Sigmoid peak control:
+Sigmoid handoff %:
+Sigmoid completion %:
+
+Attention CT RMSE avg:
+Attention std dev avg:
+Attention peak control:
+Attention handoff %:
+Attention completion %:

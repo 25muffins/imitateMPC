@@ -59,15 +59,17 @@ public class FullDiagnosticsTwoInput extends LinearOpMode {
     private ElapsedTime runTimer = new ElapsedTime();
     private FtcDashboard dashboard;
 
-    public static float[] goal1            = {30, 0, 0};
-    public static float[] goal2            = {55, -15, 0};
+    public static float[] goal1            = {0, -20, 0};
+    public static float[] goal2            = {10, -50, 0};
     public static float[] startPos         = {0, 0, 0};
-    public static float   GOAL_SWITCH_DIST = 3.0f;
+
+    public static float   GOAL_SWITCH_DIST = 5.0f;
+
     public static float   VELOCITY_SCALE   = 1.0f;
     public static String  MODEL_FILE       = "Test0_Baseline.tflite";
     public static String  MODEL_NAME       = "MLP";
-    public static int  ROUTE       = 4;
-    public static int  SEED       = 1;
+    public static int  ROUTE       = 2;
+    public static int  SEED       = 2;
 
     private static final float POS_DIV = 72.0f;
     private static final float VEL_DIV = 30.0f;

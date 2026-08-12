@@ -63,7 +63,7 @@ public class TwoInputTest0 extends LinearOpMode {
     public static float[] startPos = {0, 0, 0};
     public static float GOAL_SWITCH_DIST = 5.0f;    // inches
     public static float VELOCITY_SCALE = 1.0f;    // scale factor on output velocities
-    public static String MODEL_FILE = "Test0_Baseline.tflite";
+    public static String MODEL_FILE = "seed 1 models/Test0_Baseline.tflite";
     private static final float POS_DIV = 72.0f;
     private static final float VEL_DIV = 30.0f;
     private static final float ANG_DIV = (float) Math.PI;
