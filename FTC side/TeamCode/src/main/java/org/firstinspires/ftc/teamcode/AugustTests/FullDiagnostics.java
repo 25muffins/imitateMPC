@@ -59,19 +59,19 @@ public class FullDiagnostics extends LinearOpMode {
     private ElapsedTime runTimer = new ElapsedTime();
     private FtcDashboard dashboard;
 
-    public static float[] goal1            = {30, 0, 0};
-    public static float[] goal2            = {55, -15, 0};
+    public static float[] goal1            = {20, 0, 0};
+    public static float[] goal2            = {40, -30, -1};
     public static float[] startPos         = {0, 0, 0};
+    public static float   GOAL_SWITCH_DIST1 = 3.0f;
+    public static float   GOAL_SWITCH_DIST2 = 5.5f;
 
-
-    public static float   GOAL_SWITCH_DIST = 3.0f;
 
 
     public static float   VELOCITY_SCALE   = 1.0f;
     public static String  MODEL_FILE       = "Test3_SigmoidBlend.tflite"; //Test1_HardSwitch, Test3_SigmoidBlend, Test4_crossATTN_NOGRU
     public static String  MODEL_NAME       = "Sigmoid"; //Hard, Sigmoid, Attention
-    public static int  ROUTE       = 4;
-    public static int  SEED       = 3;
+    public static int  ROUTE       = 1;
+    public static int  SEED       = 4;
 
     private static final float POS_DIV = 72.0f;
     private static final float VEL_DIV = 30.0f;
@@ -88,7 +88,7 @@ public class FullDiagnostics extends LinearOpMode {
     private float prevVy    = 0;
     private float prevOmega = 0;
 
-    public static double kV      = 0.07;
+    public static double kV      = 0.0645;
     public static double kVTheta = 0.05;
 
     // ── M5 latency ────────────────────────────────────────────────
@@ -212,14 +212,14 @@ public class FullDiagnostics extends LinearOpMode {
             float dist2 = dist(relX, relY, relG2X, relG2Y);
 
             // ── goalswitch + M2/M4 tracking ───────────────────────
-            if (dist1 <= GOAL_SWITCH_DIST && goalSwitch == 0.0f) {
+            if (dist1 <= GOAL_SWITCH_DIST1 && goalSwitch == 0.0f) {
                 goalSwitch    = 1.0f;
                 goalSwitchFired = true;
                 goalSwitchTime  = elapsed;
                 goal1Reached    = true;   // M2/M4: goal1 successfully reached
                 tel.addData("gs", "switched to goal2");
             }
-            if (dist2 <= GOAL_SWITCH_DIST && goalSwitch == 1.0f) {
+            if (dist2 <= GOAL_SWITCH_DIST2 && goalSwitch == 1.0f) {
                 goal2Reached = true;      // M4: goal2 successfully reached
                 done = true;
             }
@@ -322,14 +322,15 @@ public class FullDiagnostics extends LinearOpMode {
                 preJumpVy    = outVy;
                 preJumpOmega = outOmega;
             }
-            // one step after switch — measure jump magnitude
+
+            float jumpMag = 0.0f;
             if (goalSwitchFired && goalSwitchTime > 0 &&
-                    elapsed - goalSwitchTime < 0.1f &&
+                    elapsed - goalSwitchTime < 0.2f &&
                     elapsed - goalSwitchTime > 0f) {
                 float jumpVx    = Math.abs(outVx    - preJumpVx);
                 float jumpVy    = Math.abs(outVy    - preJumpVy);
                 float jumpOmega = Math.abs(outOmega - preJumpOmega);
-                float jumpMag   = (float) Math.sqrt(
+                jumpMag   = (float) Math.sqrt(
                         jumpVx*jumpVx + jumpVy*jumpVy + jumpOmega*jumpOmega);
                 if (jumpMag > peakControlJump) peakControlJump = jumpMag;
             }
@@ -369,7 +370,7 @@ public class FullDiagnostics extends LinearOpMode {
                     outVx, outVy, outOmega,
                     posError, crossTrackErr,
                     thetaError, velMag,
-                    goalSwitch, (float) inferenceTime
+                    goalSwitch, (float) inferenceTime, jumpMag
             });
 
             // ── telemetry ─────────────────────────────────────────
@@ -509,7 +510,7 @@ public class FullDiagnostics extends LinearOpMode {
             w.write(String.format(Locale.US, "goal2,%s\n",
                     Arrays.toString(goal2)));
             w.write(String.format(Locale.US,
-                    "goal_switch_dist,%.2f\n",  GOAL_SWITCH_DIST));
+                    "goal_switch_dist,%.2f\n",  GOAL_SWITCH_DIST1));
             w.write(String.format(Locale.US,
                     "goal_switch_time_s,%.3f\n", goalSwitchTime));
             // M2
@@ -798,7 +799,8 @@ public class FullDiagnostics extends LinearOpMode {
                             "vx_out,vy_out,omega_out," +
                             "pos_error,cross_track_error," +
                             "theta_error,vel_mag," +
-                            "goalswitch,inference_ms\n"
+                            "goalswitch,inference_ms,"+
+                            "jumpMag\n"
             );
             for (float[] row : metricsLog) {
                 StringBuilder sb = new StringBuilder();

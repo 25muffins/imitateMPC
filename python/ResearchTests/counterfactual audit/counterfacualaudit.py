@@ -12,7 +12,7 @@ CONTROL_SCALE = np.array([1.0, 1.0, 4.0], dtype=np.float64)
 
 # Useful-effect threshold.
 USEFUL_MULTIPLIER = 3.0
-PHYSICAL_MINIMUM = 0.1
+PHYSICAL_MINIMUM = .39
 
 # Bootstrap settings
 N_BOOTSTRAP = 10000
