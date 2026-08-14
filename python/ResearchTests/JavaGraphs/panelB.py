@@ -6,10 +6,10 @@ sns.set_theme(style="white")
 sns.set_context("paper")
 
 models = {
-    'Hard Switch':  'Hard_Full_Drawing_jumpMag.csv',
+    'Hard ':  'Hard_Full_Drawing_jumpMag.csv',
     'MLP':          'MLP_Full_Drawing_jumpMag.csv',
-    'Sigmoid Gate': 'Sigmoid_Full_Drawing_jumpMag.csv',
-    'Cross-Attn':   'Attention_Full_Drawing_jumpMag.csv',
+    'Scalar Gate': 'Sigmoid_Full_Drawing_jumpMag.csv',
+    'Lightweight Attn':   'Attention_Full_Drawing_jumpMag.csv',
 }
 
 colors = ['steelblue', 'coral', 'green', 'purple']
