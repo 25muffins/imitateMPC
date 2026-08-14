@@ -29,7 +29,7 @@ function resultTable = runFixedAnchorAudit(anchors, solveFcn, howMany)
     nonext_vy = zeros(n,1);
     nonext_w  = zeros(n,1);
     
-    rng(12345);
+    rng(1232);
     idx = randperm(numel(anchors), n);
 
     for a = 1:length(idx)

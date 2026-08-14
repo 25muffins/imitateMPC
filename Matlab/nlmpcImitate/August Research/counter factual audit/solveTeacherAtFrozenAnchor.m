@@ -86,8 +86,8 @@ function u = solveTeacherAtFrozenAnchor(anchor, chosenG2Pos, start)
      hold on
     xTrackHistory = info.Xopt;
     uHistory = info.MVopt;
-    %plot(xTrackHistory(:, 1),xTrackHistory(:, 2))
-    %plot(xTrackHistory(:, 1),xTrackHistory(:, 2), 'ro')
+    plot(xTrackHistory(:, 1),xTrackHistory(:, 2))
+    plot(xTrackHistory(:, 1),xTrackHistory(:, 2), 'bo')
     %plot(1:N+1, xTrackHistory(1:N+1,3))
 
     u = uHistory;
