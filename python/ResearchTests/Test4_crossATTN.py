@@ -10,13 +10,14 @@ import os
 matlab_files = ['GRUDiffV1.mat',
                 'GRUDiffV2.mat']
 VAL_PERCENT = 0.15 #15% validation data
-EPOCHS        = 90
+EPOCHS        = 120
 BATCH_SIZE    = 512
 LR_INITIAL    = 0.001
 HIDDEN_NEURONS = 64
 LR_DROP_EPOCH = 50       # same as MATLAB
 LAMBDA_ATTN = 0.0
 ALPHA = 0.05
+HISTORY_DROPOUT = 0.2   # 20% of batches use zero history
 v_n = 30 #stands for velocity normaliztion: if using relative coords, 30, if using global coords, 30*sqrt2
 SAVE_PATH = 'tfliteFiles/Test4_crossATTN.tflite'
 
@@ -297,7 +298,7 @@ class crossAttn(tf.keras.Model):
 
         wp_encoded = self.wp_enc1(wp_flat)
         #just concat all together
-        combined = tf.concat([input_enc, h_summary, wp_encoded], axis=-1)  # (B, 192)
+        combined = tf.concat([inputFeatures, h_summary, wp_flat, context], axis=-1)  # (B, 192)
         out = self.net(combined)
 
         mean_attn = tf.reduce_mean(weights, axis=1)
@@ -317,6 +318,10 @@ def train(Xq_tr, Xw_tr, Xh_tr, gs_tr, Y_tr,  #train
     @tf.function
     def step(Xq, Xw, Xh, gs, Y, Yat):
         with tf.GradientTape() as tape:
+            if tf.random.uniform(()) < HISTORY_DROPOUT:
+                Xh = tf.zeros_like(Xh)
+            else:
+                Xh = Xh
             p, mean_attn, weights = network([Xq, Xw, Xh, gs])
             err = tf.abs(p - Y)
             loss = (1.0 * tf.reduce_mean(err[:, 0]) +

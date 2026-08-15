@@ -68,8 +68,8 @@ public class FullDiagnostics extends LinearOpMode {
 
 
     public static float   VELOCITY_SCALE   = 1.0f;
-    public static String  MODEL_FILE       = "Test3_SigmoidBlend.tflite"; //Test1_HardSwitch, Test3_SigmoidBlend, Test4_crossATTN_NOGRU
-    public static String  MODEL_NAME       = "Sigmoid"; //Hard, Sigmoid, Attention
+    public static String  MODEL_FILE       = "Test4_crossATTN.tflite"; //Test1_HardSwitch, Test3_SigmoidBlend, Test4_crossATTN_NOGRU
+    public static String  MODEL_NAME       = "AttentionGRU"; //Hard, Sigmoid, Attention
     public static int  ROUTE       = 1;
     public static int  SEED       = 4;
 
