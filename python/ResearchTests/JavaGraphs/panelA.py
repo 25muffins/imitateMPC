@@ -6,10 +6,10 @@ sns.set_theme(style="white")
 sns.set_context("paper")
 
 models = {
-    'Hard Switch':  'Hard_Full_Drawing.csv',
+    'Hard':  'Hard_Full_Drawing.csv',
     'MLP':          'MLP_Full_Drawing.csv',
-    'Sigmoid Gate': 'Sigmoid_Full_Drawing.csv',
-    'Cross-Attn':   'Attention_Full_Drawing.csv',
+    'Scalar Gate': 'Sigmoid_Full_Drawing.csv',
+    'Lightweight Attn':   'Attention_Full_Drawing.csv',
 }
 
 colors = ['steelblue', 'coral', 'green', 'purple']
@@ -23,10 +23,10 @@ for (name, path), color in zip(models.items(), colors):
 
 axes.axvline(0.825, color='gray', linestyle='--',
                 alpha=1.0, label='goalswitch')
-axes.tick_params(axis='both', labelsize=20)
-axes.set_title('A. Position Error', fontsize=25)
-axes.set_xlabel('time (s)', fontsize=20)
-axes.set_ylabel('error (m)', fontsize=20)
+axes.tick_params(axis='both', labelsize=25)
+axes.set_title('A. Position Error', fontsize=32)
+axes.set_xlabel('time (s)', fontsize=25)
+axes.set_ylabel('error (m)', fontsize=25)
 axes.legend(fontsize=17, loc = 'upper right')
 plt.tight_layout()
 plt.savefig('PANEL_A.pdf', bbox_inches='tight', dpi=150)

@@ -7,7 +7,7 @@ fprintf("Total available anchors: %d\n", numel(anchors));
 
 
 
-numAuditAnchors = 500;
+numAuditAnchors = 1;
 
 %idx = randperm(numel(anchors), numAuditAnchors);
 
@@ -18,4 +18,4 @@ resultTable = runFixedAnchorAudit( ...
     anchorsAudit, ...
     @solveTeacherAtFrozenAnchor, numAuditAnchors);
 
-writetable(resultTable, "fixed_anchor_audit.csv");
+writetable(resultTable, "asdf.csv");

@@ -6,10 +6,10 @@ sns.set_theme(style="white")
 sns.set_context("paper")
 
 models = {
-    'Hard Switch':  'Hard_Full_Drawing_jumpMag.csv',
+    'Hard ':  'Hard_Full_Drawing_jumpMag.csv',
     'MLP':          'MLP_Full_Drawing_jumpMag.csv',
-    'Sigmoid Gate': 'Sigmoid_Full_Drawing_jumpMag.csv',
-    'Cross-Attn':   'Attention_Full_Drawing_jumpMag.csv',
+    'Scalar Gate': 'Sigmoid_Full_Drawing_jumpMag.csv',
+    'Lightweight Attn':   'Attention_Full_Drawing_jumpMag.csv',
 }
 
 colors = ['steelblue', 'coral', 'green', 'purple']
@@ -21,10 +21,10 @@ for (name, path), color in zip(models.items(), colors):
     t  = df['time_s']
     axes.plot(t, df['jumpMag'] * 0.0254, label=name, color=color)
 
-axes.tick_params(axis='both', labelsize=20)
-axes.set_title('B. Control jump during 200ms handoff interval ', fontsize=25)
-axes.set_xlabel('time (s)', fontsize=20)
-axes.set_ylabel('control jump (m/s)', fontsize=20)
+axes.tick_params(axis='both', labelsize=25)
+axes.set_title('B. Control jump during 200ms handoff interval ', fontsize=32)
+axes.set_xlabel('time (s)', fontsize=25)
+axes.set_ylabel('control jump (m/s)', fontsize=25)
 axes.legend(fontsize=17)
 plt.tight_layout()
 
