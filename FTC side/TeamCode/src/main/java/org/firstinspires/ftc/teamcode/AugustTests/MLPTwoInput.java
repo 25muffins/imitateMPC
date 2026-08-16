@@ -59,9 +59,12 @@ public class MLPTwoInput extends LinearOpMode {
     private ElapsedTime runTimer = new ElapsedTime();
     private FtcDashboard dashboard;
 
-    public static float[] goal1            = {20, 10, 1};
-    public static float[] goal2            = {20, -40, -1};
+    public static float[] goal1            = {20, 0, 0};
+    public static float[] goal2            = {40, 0, 0};
     public static float[] startPos         = {0, 0, 0};
+
+
+
 
 
 
@@ -73,7 +76,7 @@ public class MLPTwoInput extends LinearOpMode {
     public static String  MODEL_FILE       = "Test0_Baseline.tflite";
     public static String  MODEL_NAME       = "MLP";
     public static int  ROUTE       = 4;
-    public static int  SEED       = 3;
+    public static int  SEED       = 1;
 
     private static final float POS_DIV = 72.0f;
     private static final float VEL_DIV = 30.0f;

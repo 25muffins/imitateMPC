@@ -19,7 +19,7 @@ LAMBDA_ATTN = 0.1
 ALPHA = 0.05
 HISTORY_DROPOUT = 0.2   # 20% of batches use zero history
 v_n = 30 #stands for velocity normaliztion: if using relative coords, 30, if using global coords, 30*sqrt2
-SAVE_PATH = 'tfliteFiles/Test4_crossATTNtest1.tflite'
+SAVE_PATH = 'tfliteFiles/Test4_crossATTN.tflite'
 
 def load_data(mat_files):
     parts = []

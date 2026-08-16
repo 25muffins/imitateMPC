@@ -1,0 +1,30 @@
+field,value
+model,Hard
+model_file,Test1_HardSwitch.tflite
+timestamp,19691231_185155
+duration_s,2.768
+steps,81
+goal1,[0.0, 20.0, 0.75]
+goal2,[20.0, 50.0, 0.75]
+goal_switch_dist,5.00
+goal_switch_time_s,0.922
+M2_handoff_fail_k,0
+M2_handoff_fail_N,1
+M2_handoff_fail_pct,0.0
+M3_peak_control_jump,17.08110
+M4_completion_k,1
+M4_completion_N,1
+M4_completion_pct,100.0
+M5_inf_p50_ms,0.535
+M5_inf_p95_ms,0.735
+M5_deadline_ms,10.0
+M5_deadline_misses,0
+M5_deadline_miss_pct,0.00
+avg_pos_error_in,15.7545
+max_pos_error_in,39.7354
+avg_crosstrack_in,2.4953
+max_crosstrack_in,5.5525
+avg_theta_error_rad,0.1992
+avg_inference_ms,0.560
+RMSE Cross Track,3.167
+CT STD DEV,1.962

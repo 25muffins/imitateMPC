@@ -60,9 +60,13 @@ public class AttentionGRU extends LinearOpMode {
     private FtcDashboard dashboard;
 
 
-    public static float[] goal1            = {20, 10, 1};
-    public static float[] goal2            = {20, -40, -1};
+    public static float[] goal1            = {20, 0, 0};
+    public static float[] goal2            = {40, 0, 0};
     public static float[] startPos         = {0, 0, 0};
+
+
+
+
 
 
     public static float   GOAL_SWITCH_DIST1 = 5.0f;
@@ -74,7 +78,7 @@ public class AttentionGRU extends LinearOpMode {
     public static float   VELOCITY_SCALE   = 1.0f;
     public static String  MODEL_FILE       = "Test4_crossATTN.tflite"; //Test1_HardSwitch, Test3_SigmoidBlend, Test4_crossATTN_NOGRU
     public static String  MODEL_NAME       = "AttentionGRU"; //Hard, Sigmoid, Attention
-    public static int  ROUTE       = 3;
+    public static int  ROUTE       = 4;
     public static int  SEED       = 1;
 
     private static final float POS_DIV = 72.0f;
