@@ -1,0 +1,30 @@
+field,value
+model,Attention
+model_file,Test4_crossATTN_NOGRU.tflite
+timestamp,19691231_182330
+duration_s,1.602
+steps,48
+goal1,[0.0, 20.0, 0.75]
+goal2,[20.0, 50.0, 0.75]
+goal_switch_dist,5.00
+goal_switch_time_s,0.839
+M2_handoff_fail_k,0
+M2_handoff_fail_N,1
+M2_handoff_fail_pct,0.0
+M3_peak_control_jump,13.99255
+M4_completion_k,1
+M4_completion_N,1
+M4_completion_pct,100.0
+M5_inf_p50_ms,0.915
+M5_inf_p95_ms,1.366
+M5_deadline_ms,10.0
+M5_deadline_misses,0
+M5_deadline_miss_pct,0.00
+avg_pos_error_in,19.7977
+max_pos_error_in,39.6037
+avg_crosstrack_in,1.5591
+max_crosstrack_in,3.5017
+avg_theta_error_rad,0.2730
+avg_inference_ms,0.921
+RMSE Cross Track,1.951
+CT STD DEV,1.185

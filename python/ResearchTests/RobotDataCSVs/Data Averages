@@ -3,25 +3,32 @@ Base std dev avg:
 Base peak control:
 Base handoff k/N:
 Base completion k/N:
-Latency (p50/p95):
+Latency (p50/p95): 0.2325 / 0.3535
 
 Hard CT RMSE avg:
 Hard std dev avg:
 Hard peak control:
 Hard handoff k/N:
 Hard completion k/N:
-Latency (p50/p95):
+Latency (p50/p95): 0.2896 / 0.3920
 
 Sigmoid CT RMSE avg:
 Sigmoid std dev avg:
 Sigmoid peak control:
 Sigmoid handoff k/N:
 Sigmoid completion k/N:
-Latency (p50/p95):
+Latency (p50/p95): 0.3870 / 0.4888
 
 Attention CT RMSE avg:
 Attention std dev avg:
 Attention peak control:
 Attention handoff k/N:
 Attention completion k/N:
-Latency (p50/p95): 
+Latency (p50/p95): 0.6277 / 0.7586
+
+AttentionGRU CT RMSE avg:
+AttentionGRU std dev avg:
+AttentionGRU peak control:
+AttentionGRU handoff k/N:
+AttentionGRU completion k/N:
+Latency (p50/p95): 1.0421 / 1.1451

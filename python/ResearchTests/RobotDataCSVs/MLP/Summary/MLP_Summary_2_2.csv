@@ -1,0 +1,30 @@
+field,value
+model,MLP
+model_file,Test0_Baseline.tflite
+timestamp,19691231_181429
+duration_s,2.058
+steps,65
+goal1,[-10.0, -50.0, 0.0]
+goal2,[20.0, -50.0, 0.0]
+goal_switch_dist,8.00
+goal_switch_time_s,1.255
+M2_handoff_fail_k,0
+M2_handoff_fail_N,1
+M2_handoff_fail_pct,0.0
+M3_peak_control_jump,15.42252
+M4_completion_k,1
+M4_completion_N,1
+M4_completion_pct,100.0
+M5_inf_p50_ms,0.404
+M5_inf_p95_ms,0.540
+M5_deadline_ms,10.0
+M5_deadline_misses,0
+M5_deadline_miss_pct,0.00
+avg_pos_error_in,29.3003
+max_pos_error_in,50.9902
+avg_crosstrack_in,2.5922
+max_crosstrack_in,6.5478
+avg_theta_error_rad,0.0630
+avg_inference_ms,0.437
+RMSE Cross Track,3.156
+CT STD DEV,1.815

@@ -318,8 +318,8 @@ def train(Xq_tr, Xw_tr, Xh_tr, gs_tr, Y_tr,  #train
 
 
 def main():
-    tf.random.set_seed(42)
-    np.random.seed(42)
+    tf.random.set_seed(41)
+    np.random.seed(41)
 
     data = load_data(matlab_files)
     query, waypoints, past_u, goalswitch, target, history = extract_features(data)

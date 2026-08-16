@@ -65,15 +65,11 @@ public class Sigmoid extends LinearOpMode {
 
     public static float   GOAL_SWITCH_DIST1 = 5.0f;
     public static float   GOAL_SWITCH_DIST2 = 5.0f;
-
-
-
-
     public static float   VELOCITY_SCALE   = 1.0f;
     public static String  MODEL_FILE       = "Test3_SigmoidBlend.tflite"; //Test1_HardSwitch, Test3_SigmoidBlend, Test4_crossATTN_NOGRU
     public static String  MODEL_NAME       = "Sigmoid"; //Hard, Sigmoid, Attention
     public static int  ROUTE       = 4;
-    public static int  SEED       = 1;
+    public static int  SEED       = 2;
 
     private static final float POS_DIV = 72.0f;
     private static final float VEL_DIV = 30.0f;
@@ -727,8 +723,7 @@ public class Sigmoid extends LinearOpMode {
                                int violations, float vPct) {
         String timestamp = new SimpleDateFormat(
                 "yyyyMMdd_HHmmss", Locale.US).format(new Date());
-        String filename  = "M5_latency_" + MODEL_NAME
-                + "_" + timestamp + ".csv";
+        String filename  = "M5_latency_" + MODEL_NAME +".csv";
         File dir  = Environment.getExternalStoragePublicDirectory(
                 Environment.DIRECTORY_DOWNLOADS);
         File file = new File(dir, filename);
