@@ -50,8 +50,8 @@ import java.util.Locale;
 import static org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequenceRunner.COLOR_INACTIVE_TRAJECTORY;
 
 @Config
-@Autonomous(name = "FourInputFullDiagnostics")
-public class FullDiagnostics extends LinearOpMode {
+@Autonomous(name = "FourInputFullDiagnosticsGRU")
+public class FullDiagnosticsGRU extends LinearOpMode {
 
     IMU imu;
     TwoWheelTrackingLocalizer localizer;
@@ -64,6 +64,7 @@ public class FullDiagnostics extends LinearOpMode {
     public static float[] goal2            = {20, -40, -1};
     public static float[] startPos         = {0, 0, 0};
 
+
     public static float   GOAL_SWITCH_DIST1 = 5.0f;
     public static float   GOAL_SWITCH_DIST2 = 5.0f;
 
@@ -71,8 +72,8 @@ public class FullDiagnostics extends LinearOpMode {
 
 
     public static float   VELOCITY_SCALE   = 1.0f;
-    public static String  MODEL_FILE       = "Test4_crossATTN_NOGRU.tflite"; //Test1_HardSwitch, Test3_SigmoidBlend, Test4_crossATTN_NOGRU
-    public static String  MODEL_NAME       = "Attention"; //Hard, Sigmoid, Attention
+    public static String  MODEL_FILE       = "Test4_crossATTN.tflite"; //Test1_HardSwitch, Test3_SigmoidBlend, Test4_crossATTN_NOGRU
+    public static String  MODEL_NAME       = "AttentionGRU"; //Hard, Sigmoid, Attention
     public static int  ROUTE       = 3;
     public static int  SEED       = 1;
 
@@ -82,7 +83,7 @@ public class FullDiagnostics extends LinearOpMode {
     private static final float ANG_DIV = (float) Math.PI;
 
     private static final int HISTORY_STEPS    = 8;
-    private static final int HISTORY_FEATURES = 5;
+    private static final int HISTORY_FEATURES = 3;
     private float[][][] rawHistoryBuf      = new float[1][HISTORY_STEPS][HISTORY_FEATURES];
     private float[][][] weightedHistoryBuf = new float[1][HISTORY_STEPS][HISTORY_FEATURES];
     private boolean historyInitialized     = false;
@@ -272,8 +273,8 @@ public class FullDiagnostics extends LinearOpMode {
             newHistStep[0] = (relX - lastHist[0])   / POS_DIV;
             newHistStep[1] = (relY - lastHist[1])    / POS_DIV;
             newHistStep[2] = (heading - lastHist[2]) / ANG_DIV;
-            newHistStep[3] = sinTh;
-            newHistStep[4] = cosTh;
+//            newHistStep[3] = sinTh;
+//            newHistStep[4] = cosTh;
 //            newHistStep[5] = vx      / VEL_DIV;
 //            newHistStep[6] = vy      / VEL_DIV;
 //            newHistStep[7] = omega   / ANG_DIV;
@@ -606,8 +607,8 @@ public class FullDiagnostics extends LinearOpMode {
         for (int t = 0; t < HISTORY_STEPS; t++) {
             float r = (t + 1) / (float) HISTORY_STEPS;
             bHist[0][t] = new float[]{
-                    0.1f*r, -0.1f*r, 0.05f*r,
-                    0.7f, 0.7f};
+                    0.1f*r, -0.1f*r, 0.05f*r};
+//                    0.7f, 0.7f};
         }
 
         float[][] bGs    = new float[1][1];

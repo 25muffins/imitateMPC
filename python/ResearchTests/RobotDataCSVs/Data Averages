@@ -1,27 +1,27 @@
-Base CT RMSE avg: 5.5877
-Base std dev avg: 3.2986
-Base peak control: 18.0092
-Base handoff k/N: 12/12
-Base completion k/N: 11/12
-Latency (p50/p95): 0.2097 / 0.3042
+Base CT RMSE avg:
+Base std dev avg:
+Base peak control:
+Base handoff k/N:
+Base completion k/N:
+Latency (p50/p95):
 
-Hard CT RMSE avg: 5.7877
-Hard std dev avg: 3.2668
-Hard peak control: 16.3957
-Hard handoff k/N: 10/12
-Hard completion k/N: 10/12
-Latency (p50/p95): 0.3068 / 0.4180
+Hard CT RMSE avg:
+Hard std dev avg:
+Hard peak control:
+Hard handoff k/N:
+Hard completion k/N:
+Latency (p50/p95):
 
-Sigmoid CT RMSE avg: 5.9037
-Sigmoid std dev avg: 3.5137
-Sigmoid peak control: 19.0993
-Sigmoid handoff k/N: 12/12
-Sigmoid completion k/N: 12/12
-Latency (p50/p95): 0.3806 / 0.4754
+Sigmoid CT RMSE avg:
+Sigmoid std dev avg:
+Sigmoid peak control:
+Sigmoid handoff k/N:
+Sigmoid completion k/N:
+Latency (p50/p95):
 
-Attention CT RMSE avg: 5.4327
-Attention std dev avg: 3.1170
-Attention peak control: 15.7393
-Attention handoff k/N: 12/12
-Attention completion k/N: 12/12
-Latency (p50/p95): 0.6020 / 0.7338
+Attention CT RMSE avg:
+Attention std dev avg:
+Attention peak control:
+Attention handoff k/N:
+Attention completion k/N:
+Latency (p50/p95): 

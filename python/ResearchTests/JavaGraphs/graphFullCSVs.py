@@ -10,9 +10,10 @@ models = {
     'MLP':          'MLP_Full_Drawing.csv',
     'Sigmoid Gate': 'Sigmoid_Full_Drawing.csv',
     'Cross-Attn':   'Attention_Full_Drawing.csv',
+    'AttentionGRU' : 'AttentionGRU_Full_Drawing.csv'
 }
 
-colors = ['steelblue', 'coral', 'green', 'purple']
+colors = ['steelblue', 'coral', 'green', 'purple', 'red']
 fig, axes = plt.subplots(2, 2, figsize=(12, 8))
 
 for (name, path), color in zip(models.items(), colors):

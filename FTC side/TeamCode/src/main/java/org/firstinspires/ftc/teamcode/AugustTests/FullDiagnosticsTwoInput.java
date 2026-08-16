@@ -59,13 +59,14 @@ public class FullDiagnosticsTwoInput extends LinearOpMode {
     private ElapsedTime runTimer = new ElapsedTime();
     private FtcDashboard dashboard;
 
-    public static float[] goal1            = {20, 0, 0};
-    public static float[] goal2            = {40, -30, -1};
+    public static float[] goal1            = {20, 10, 1};
+    public static float[] goal2            = {20, -40, -1};
     public static float[] startPos         = {0, 0, 0};
 
 
-    public static float   GOAL_SWITCH_DIST1 = 2.0f;
-    public static float   GOAL_SWITCH_DIST2 = 4.0f;
+
+    public static float   GOAL_SWITCH_DIST1 = 5.0f;
+    public static float   GOAL_SWITCH_DIST2 = 5.0f;
 
 
     public static float   VELOCITY_SCALE   = 1.0f;
@@ -306,8 +307,18 @@ public class FullDiagnosticsTwoInput extends LinearOpMode {
             float activeGoalX    = (goalSwitch == 0) ? relG1X : relG2X;
             float activeGoalY    = (goalSwitch == 0) ? relG1Y : relG2Y;
             float posError       = dist(relX, relY, activeGoalX, activeGoalY);
-            float crossTrackErr  = crossTrackError(relX, relY,
-                    relG1X, relG1Y, relG2X, relG2Y);
+            float crossTrackErr;
+            if (goalSwitch == 0) {
+                crossTrackErr = crossTrackError(relX, relY,
+                        0, 0,
+                        relG1X, relG1Y
+                );
+            } else {
+                crossTrackErr = crossTrackError(relX, relY,
+                        relG1X, relG1Y,
+                        relG2X, relG2Y
+                );
+            }
             float targetHeading  = (goalSwitch == 0) ? goal1[2] : goal2[2];
             float thetaError     = Math.abs(normalizeAngle(heading - targetHeading));
             float velMag         = (float) Math.sqrt(outVx*outVx + outVy*outVy);

@@ -15,11 +15,11 @@ BATCH_SIZE    = 512
 LR_INITIAL    = 0.001
 HIDDEN_NEURONS = 64
 LR_DROP_EPOCH = 50       # same as MATLAB
-LAMBDA_ATTN = 0.0
+LAMBDA_ATTN = 0.1
 ALPHA = 0.05
 HISTORY_DROPOUT = 0.2   # 20% of batches use zero history
 v_n = 30 #stands for velocity normaliztion: if using relative coords, 30, if using global coords, 30*sqrt2
-SAVE_PATH = 'tfliteFiles/Test4_crossATTN.tflite'
+SAVE_PATH = 'tfliteFiles/Test4_crossATTNtest1.tflite'
 
 def load_data(mat_files):
     parts = []
@@ -51,7 +51,7 @@ def extract_features(data):
 
     # each step: [x, y, theta, sin_th, cos_th, vx, vy, omega, goalswitch]
     historyraw = data[:, 38:110].reshape(-1, 8, 9)  # (N, 8, 9)
-    history = historyraw[:, :, [0, 1, 2, 3, 4]]  # (N, 8, 6)
+    history = historyraw[:, :, [0, 1, 2]]  # (N, 8, 6)
     # recency weights: oldest=1/8, newest=8/8
     recency = np.arange(1, 9) / 8.0
     recency = recency[np.newaxis, :, np.newaxis]  # (1, 8, 1)
@@ -84,7 +84,7 @@ def normalize(currentState, waypoints, past_u, target, history):
     target_norm = (target / np.array([v_n, v_n, np.pi])).astype(np.float32)
 
     # hist_div = np.array([72, 72, np.pi, 1, 1, v_n, v_n, np.pi, 1])
-    hist_div = np.array([72, 72, np.pi, 1, 1])
+    hist_div = np.array([72, 72, np.pi])#, 1, 1])
     hist_norm = (history / hist_div).astype(np.float32)  # (N, 8, 6)
     return state_norm, wp_norm, past_norm, target_norm, hist_norm
 
@@ -146,7 +146,7 @@ def convert_to_tflite(model, Xq_tr, Xw_tr, Xh_tr, gs_tr):
     @tf.function(input_signature=[
         tf.TensorSpec(shape=[1, 8], dtype=tf.float32),  # query
         tf.TensorSpec(shape=[1, 2, 4], dtype=tf.float32),  # waypoints
-        tf.TensorSpec(shape=[1, 8, 5], dtype=tf.float32),  # history
+        tf.TensorSpec(shape=[1, 8, 3], dtype=tf.float32),  # history
         tf.TensorSpec(shape=[1, 1], dtype=tf.float32),  # goalswitch
     ])
     def serving_fn(query, waypoints, history, goalswitch):
@@ -298,7 +298,7 @@ class crossAttn(tf.keras.Model):
 
         wp_encoded = self.wp_enc1(wp_flat)
         #just concat all together
-        combined = tf.concat([inputFeatures, h_summary, wp_flat, context], axis=-1)  # (B, 192)
+        combined = tf.concat([input_enc, h_summary, wp_flat, context], axis=-1)  # (B, 192)
         out = self.net(combined)
 
         mean_attn = tf.reduce_mean(weights, axis=1)

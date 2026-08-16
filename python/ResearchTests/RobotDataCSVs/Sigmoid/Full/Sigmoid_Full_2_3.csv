@@ -1,1 +1,0 @@
-time_s,relX,relY,heading,vx_in,vy_in,omega_in,vx_out,vy_out,omega_out,pos_error,cross_track_error,theta_error,vel_mag,goalswitch,inference_ms
