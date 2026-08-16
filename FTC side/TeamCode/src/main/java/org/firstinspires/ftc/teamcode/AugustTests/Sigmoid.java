@@ -1,7 +1,10 @@
 package org.firstinspires.ftc.teamcode.AugustTests;
 
+import static org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequenceRunner.COLOR_INACTIVE_TRAJECTORY;
+
 import android.annotation.SuppressLint;
 import android.content.res.AssetFileDescriptor;
+import android.os.Environment;
 
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.canvas.Canvas;
@@ -29,29 +32,24 @@ import org.firstinspires.ftc.teamcode.drive.TwoWheelTrackingLocalizer;
 import org.firstinspires.ftc.teamcode.util.DashboardUtil;
 import org.tensorflow.lite.Interpreter;
 
+import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
-import android.os.Environment;
-
-import java.io.File;
-import java.io.FileWriter;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Locale;
-
-import static org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequenceRunner.COLOR_INACTIVE_TRAJECTORY;
-
 @Config
-@Autonomous(name = "FourInputFullDiagnostics")
-public class FullDiagnostics extends LinearOpMode {
+@Autonomous(name = "Sigmoid")
+public class Sigmoid extends LinearOpMode {
 
     IMU imu;
     TwoWheelTrackingLocalizer localizer;
@@ -71,8 +69,8 @@ public class FullDiagnostics extends LinearOpMode {
 
 
     public static float   VELOCITY_SCALE   = 1.0f;
-    public static String  MODEL_FILE       = "Test4_crossATTN_NOGRU.tflite"; //Test1_HardSwitch, Test3_SigmoidBlend, Test4_crossATTN_NOGRU
-    public static String  MODEL_NAME       = "Attention"; //Hard, Sigmoid, Attention
+    public static String  MODEL_FILE       = "Test3_SigmoidBlend.tflite"; //Test1_HardSwitch, Test3_SigmoidBlend, Test4_crossATTN_NOGRU
+    public static String  MODEL_NAME       = "Sigmoid"; //Hard, Sigmoid, Attention
     public static int  ROUTE       = 3;
     public static int  SEED       = 1;
 

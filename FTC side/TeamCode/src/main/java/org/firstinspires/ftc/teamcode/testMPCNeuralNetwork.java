@@ -16,6 +16,7 @@ import com.acmerobotics.roadrunner.path.Path;
 import com.acmerobotics.roadrunner.path.PathSegment;
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
@@ -36,7 +37,7 @@ import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.Arrays;
 
-@Config
+@Disabled
 @Autonomous(name = "testMPCNeuralNetwork")
 public class testMPCNeuralNetwork extends LinearOpMode {
     IMU imu;

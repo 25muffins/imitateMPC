@@ -50,7 +50,7 @@ import java.util.Locale;
 
 import static org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequenceRunner.COLOR_INACTIVE_TRAJECTORY;
 
-@Config
+
 @Disabled
 @Autonomous(name = "FourInputTest1to4PLEASEWORK")
 public class FourInputPLEASE_WORK extends LinearOpMode {

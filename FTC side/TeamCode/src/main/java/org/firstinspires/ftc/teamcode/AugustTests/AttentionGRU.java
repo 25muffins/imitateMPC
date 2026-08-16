@@ -50,8 +50,8 @@ import java.util.Locale;
 import static org.firstinspires.ftc.teamcode.trajectorysequence.TrajectorySequenceRunner.COLOR_INACTIVE_TRAJECTORY;
 
 @Config
-@Autonomous(name = "FourInputFullDiagnosticsGRU")
-public class FullDiagnosticsGRU extends LinearOpMode {
+@Autonomous(name = "AttentionGRU")
+public class AttentionGRU extends LinearOpMode {
 
     IMU imu;
     TwoWheelTrackingLocalizer localizer;
