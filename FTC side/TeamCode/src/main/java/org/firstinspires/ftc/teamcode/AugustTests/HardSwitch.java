@@ -70,7 +70,7 @@ public class HardSwitch extends LinearOpMode {
     public static String  MODEL_FILE       = "Test1_HardSwitch.tflite"; //Test1_HardSwitch, Test3_SigmoidBlend, Test4_crossATTN_NOGRU
     public static String  MODEL_NAME       = "Hard"; //Hard, Sigmoid, Attention
     public static int  ROUTE       = 4;
-    public static int  SEED       = 2;
+    public static int  SEED       = 3;
 
     private static final float POS_DIV = 72.0f;
     private static final float VEL_DIV = 30.0f;

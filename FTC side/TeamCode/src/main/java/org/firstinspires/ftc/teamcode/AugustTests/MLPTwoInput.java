@@ -71,7 +71,7 @@ public class MLPTwoInput extends LinearOpMode {
     public static String  MODEL_FILE       = "Test0_Baseline.tflite";
     public static String  MODEL_NAME       = "MLP";
     public static int  ROUTE       = 4;
-    public static int  SEED       = 2;
+    public static int  SEED       = 3;
 
     private static final float POS_DIV = 72.0f;
     private static final float VEL_DIV = 30.0f;

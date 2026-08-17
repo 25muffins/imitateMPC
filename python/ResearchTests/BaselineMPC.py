@@ -235,8 +235,8 @@ def train_baseline(Xq_tr, Xw_tr, Y_tr, Xq_val, Xw_val, Y_val):
 
 
 def main():
-    tf.random.set_seed(41)
-    np.random.seed(41)
+    tf.random.set_seed(40)
+    np.random.seed(40)
 
     data = load_data(matlab_files)
     query, waypoints, past_u, goalswitch, target = extract_features(data)

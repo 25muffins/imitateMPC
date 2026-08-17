@@ -1,34 +1,39 @@
-Base CT RMSE avg:
-Base std dev avg:
-Base peak control:
-Base handoff k/N:
-Base completion k/N:
+Base CT RMSE avg: 2.43458
+Base std dev avg: 1.50192
+Base peak control: 14.69587
+Median peak control (min/max): 15.07512 (5.625, 24.03025)
+Base handoff k/N: 12/12
+Base completion k/N: 12/12
 Latency (p50/p95): 0.2325 / 0.3535
 
-Hard CT RMSE avg:
-Hard std dev avg:
-Hard peak control:
-Hard handoff k/N:
-Hard completion k/N:
+Hard CT RMSE avg: 2.34025
+Hard std dev avg: 1.38042
+Hard peak control: 14.45503
+Median peak control (min/max): 14.14.84664 (6.9521, 26.05241)
+Hard handoff k/N: 11/12
+Hard completion k/N: 11/12
 Latency (p50/p95): 0.2896 / 0.3920
 
-Sigmoid CT RMSE avg:
-Sigmoid std dev avg:
-Sigmoid peak control:
-Sigmoid handoff k/N:
-Sigmoid completion k/N:
+Sigmoid CT RMSE avg: 2.06925
+Sigmoid std dev avg: 1.28083
+Sigmoid peak control: 15.62139
+Median peak control (min/max): 15.02853 (7.00444, 25.46975)
+Sigmoid handoff k/N: 12/12
+Sigmoid completion k/N: 11/12
 Latency (p50/p95): 0.3870 / 0.4888
 
-Attention CT RMSE avg:
-Attention std dev avg:
-Attention peak control:
-Attention handoff k/N:
-Attention completion k/N:
+Attention CT RMSE avg: 1.89367
+Attention std dev avg: 1.14167
+Attention peak control: 13.75775
+Median peak control (min/max): 13.3607 (5.59515, 23.98735)
+Attention handoff k/N: 12/12
+Attention completion k/N: 12/12
 Latency (p50/p95): 0.6277 / 0.7586
 
-AttentionGRU CT RMSE avg:
-AttentionGRU std dev avg:
-AttentionGRU peak control:
-AttentionGRU handoff k/N:
-AttentionGRU completion k/N:
+AttentionGRU CT RMSE avg: 1.84342
+AttentionGRU std dev avg: 1.20425
+AttentionGRU peak control: 11.62381
+Median peak control (min/max): 11.06076 (5.98299, 18.10154)
+AttentionGRU handoff k/N: 12/12
+AttentionGRU completion k/N: 12/12
 Latency (p50/p95): 1.0421 / 1.1451
