@@ -10,9 +10,10 @@ models = {
     'MLP':          'MLP_Full_Drawing.csv',
     'Scalar Gate': 'Sigmoid_Full_Drawing.csv',
     'Lightweight Attn':   'Attention_Full_Drawing.csv',
+    'Attn w/ GRU': 'AttentionGRU_Full_Drawing.csv',
 }
 
-colors = ['steelblue', 'coral', 'green', 'purple']
+colors = ['steelblue', 'coral', 'green', 'purple', 'red']
 fig, axes = plt.subplots(1, 1, figsize=(8, 8))
 
 for (name, path), color in zip(models.items(), colors):
@@ -21,7 +22,7 @@ for (name, path), color in zip(models.items(), colors):
     t  = df['time_s']
     axes.plot(t, df['pos_error'] * 0.0254, label=name, color=color)
 
-axes.axvline(0.825, color='gray', linestyle='--',
+axes.axvline(0.76, color='gray', linestyle='--',
                 alpha=1.0, label='goalswitch')
 axes.tick_params(axis='both', labelsize=25)
 axes.set_title('A. Position Error', fontsize=32)

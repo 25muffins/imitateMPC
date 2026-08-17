@@ -60,16 +60,15 @@ public class Attention extends LinearOpMode {
     private FtcDashboard dashboard;
 
 
-    public static float[] goal1            = {20, 0, 0};
-    public static float[] goal2            = {40, 0, 0};
+    public static float[] goal1            = {20, 10, 1};
+    public static float[] goal2            = {20, -40, -1};
     public static float[] startPos         = {0, 0, 0};
-
 
 
     public static float   GOAL_SWITCH_DIST1 = 5.0f;
     public static float   GOAL_SWITCH_DIST2 = 5.0f;
     public static float   VELOCITY_SCALE   = 1.0f;
-    public static String  MODEL_FILE       = "Test4_crossATTN_NOGRU.tflite"; //Test1_HardSwitch, Test3_SigmoidBlend, Test4_crossATTN_NOGRU
+    public static String  MODEL_FILE       = "Test4_crossATTN_NOGRU_1.tflite"; //Test1_HardSwitch, Test3_SigmoidBlend, Test4_crossATTN_NOGRU
     public static String  MODEL_NAME       = "Attention"; //Hard, Sigmoid, Attention
     public static int  ROUTE       = 4;
     public static int  SEED       = 3;
@@ -89,7 +88,7 @@ public class Attention extends LinearOpMode {
     private float prevVy    = 0;
     private float prevOmega = 0;
 
-    public static double kV      = 0.07;
+    public static double kV      = 0.078;
     public static double kVTheta = 0.05;
 
     // ── M5 latency ────────────────────────────────────────────────

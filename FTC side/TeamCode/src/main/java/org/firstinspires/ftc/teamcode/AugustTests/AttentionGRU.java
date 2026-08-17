@@ -60,8 +60,8 @@ public class AttentionGRU extends LinearOpMode {
     private FtcDashboard dashboard;
 
 
-    public static float[] goal1            = {20, 0, 0};
-    public static float[] goal2            = {40, 0, 0};
+    public static float[] goal1            = {20, 10, 1};
+    public static float[] goal2            = {20, -40, -1};
     public static float[] startPos         = {0, 0, 0};
 
 
@@ -88,7 +88,7 @@ public class AttentionGRU extends LinearOpMode {
     private float prevVy    = 0;
     private float prevOmega = 0;
 
-    public static double kV      = 0.07;
+    public static double kV      = 0.086;
     public static double kVTheta = 0.05;
 
     // ── M5 latency ────────────────────────────────────────────────
